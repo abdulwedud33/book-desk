@@ -146,12 +146,26 @@ const bookingHtml = `<!DOCTYPE html>
 </html>
 `;
 
-fs.writeFileSync(path.join(BOOKING_OUT, 'index.html'), bookingHtml, 'utf8');
-fs.writeFileSync(path.join(MANAGE_OUT, 'index.html'), bookingHtml.replace('Book Appointment', 'Manage Booking'), 'utf8');
-fs.writeFileSync(path.join(B_TEST_OUT, 'index.html'), bookingHtml, 'utf8');
-fs.writeFileSync(path.join(B_ADDIS_OUT, 'index.html'), bookingHtml, 'utf8');
-fs.writeFileSync(path.join(M_DEMO_OUT, 'index.html'), bookingHtml.replace('Book Appointment', 'Manage Booking'), 'utf8');
+const manageHtml = bookingHtml.replace('Book Appointment', 'Manage Booking');
 
+// Write out/ directory targets (both directory index and cleanUrl .html files)
+fs.writeFileSync(path.join(BOOKING_OUT, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(OUT_DIR, 'booking.html'), bookingHtml, 'utf8');
+
+fs.writeFileSync(path.join(MANAGE_OUT, 'index.html'), manageHtml, 'utf8');
+fs.writeFileSync(path.join(OUT_DIR, 'manage.html'), manageHtml, 'utf8');
+
+fs.writeFileSync(path.join(B_TEST_OUT, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(OUT_DIR, 'b', 'test.html'), bookingHtml, 'utf8');
+
+fs.writeFileSync(path.join(B_ADDIS_OUT, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(OUT_DIR, 'b', 'addis-barber.html'), bookingHtml, 'utf8');
+
+fs.writeFileSync(path.join(M_DEMO_OUT, 'index.html'), manageHtml, 'utf8');
+fs.writeFileSync(path.join(OUT_DIR, 'm', 'demo.html'), manageHtml, 'utf8');
+fs.writeFileSync(path.join(OUT_DIR, 'm', 'tok_test.html'), manageHtml, 'utf8');
+
+// Write public/ directory targets
 fs.writeFileSync(path.join(PUBLIC_BOOKING, 'index.html'), bookingHtml, 'utf8');
 fs.writeFileSync(path.join(PUBLIC_B_TEST, 'index.html'), bookingHtml, 'utf8');
 fs.writeFileSync(path.join(PUBLIC_B_ADDIS, 'index.html'), bookingHtml, 'utf8');
