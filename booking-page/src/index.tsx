@@ -53,6 +53,19 @@ interface ManageBookingData {
   cutoff_hours: number;
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tjcjsuzyasmyyzekdwaz.supabase.co';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_200T23n5sjVYN5c4k1nP5g_j6WbQvMd';
+
+function getApiUrl(fnName: string): string {
+  return `${SUPABASE_URL}/functions/v1/${fnName}`;
+}
+
+const apiHeaders: Record<string, string> = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+};
+
 const I18N = {
   en: {
     step1: '1. Service',
@@ -288,7 +301,9 @@ function ManageView({ token }: { token: string }) {
   useEffect(() => {
     async function fetchBooking() {
       try {
-        const res = await fetch(`/api/public-manage?token=${encodeURIComponent(token)}`);
+        const res = await fetch(`${getApiUrl('public-manage')}?token=${encodeURIComponent(token)}`, {
+          headers: apiHeaders,
+        });
         if (!res.ok) {
           throw new Error('NOT_FOUND');
         }
@@ -331,9 +346,9 @@ function ManageView({ token }: { token: string }) {
     setRescheduleError(null);
 
     try {
-      const res = await fetch('/api/public-reschedule', {
+      const res = await fetch(getApiUrl('public-reschedule'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: apiHeaders,
         body: JSON.stringify({ token, new_start: selectedSlot }),
       });
       const data = await res.json();
@@ -364,9 +379,9 @@ function ManageView({ token }: { token: string }) {
   const handleCancelSubmit = async () => {
     setCancelLoading(true);
     try {
-      const res = await fetch('/api/public-cancel', {
+      const res = await fetch(getApiUrl('public-cancel'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: apiHeaders,
         body: JSON.stringify({ token, reason: cancelReason }),
       });
       const data = await res.json();
@@ -432,26 +447,25 @@ function ManageView({ token }: { token: string }) {
             {t.ethTimeToggle}
           </button>
 
-          <div style={{ display: 'flex', borderRadius: '6px', border: '1px solid var(--color-line)', overflow: 'hidden' }}>
-            {(['en', 'am', 'om'] as Locale[]).map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => setLocale(lang)}
-                style={{
-                  padding: '4px 6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  border: 'none',
-                  backgroundColor: locale === lang ? 'var(--color-ink)' : 'var(--color-surface)',
-                  color: locale === lang ? 'var(--color-paper)' : 'var(--color-slate)',
-                  cursor: 'pointer',
-                }}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          <select
+            value={locale}
+            onChange={(e) => setLocale((e.target as HTMLSelectElement).value as Locale)}
+            aria-label="Language"
+            style={{
+              padding: '4px 8px',
+              fontSize: '12px',
+              fontWeight: 500,
+              borderRadius: '6px',
+              border: '1px solid var(--color-line)',
+              backgroundColor: 'var(--color-surface)',
+              color: 'var(--color-ink)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="en">English (EN)</option>
+            <option value="am">አማርኛ (AM)</option>
+            <option value="om">Afaan Oromoo (OM)</option>
+          </select>
         </div>
       </header>
 
@@ -464,7 +478,9 @@ function ManageView({ token }: { token: string }) {
           </div>
         ) : errorState || !booking ? (
           <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-line)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
+            <svg style={{ width: '32px', height: '32px', margin: '0 auto 8px', color: 'var(--color-slate)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
+            </svg>
             <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>{t.notFoundOrExpired}</h2>
           </div>
         ) : (
@@ -667,7 +683,7 @@ function ManageView({ token }: { token: string }) {
                     className="btn-primary"
                     onClick={() => setIsRescheduling(true)}
                   >
-                    📅 {t.rescheduleBtn}
+                    {t.rescheduleBtn}
                   </button>
                 )}
 
@@ -686,7 +702,7 @@ function ManageView({ token }: { token: string }) {
                       cursor: 'pointer',
                     }}
                   >
-                    ✖ {t.cancelAppointmentBtn}
+                    {t.cancelAppointmentBtn}
                   </button>
                 )}
 
@@ -704,7 +720,7 @@ function ManageView({ token }: { token: string }) {
                     cursor: 'pointer',
                   }}
                 >
-                  📅 {t.addToCalendar}
+                  {t.addToCalendar}
                 </button>
               </div>
             )}
@@ -769,7 +785,9 @@ export function BookingApp() {
   useEffect(() => {
     async function fetchShop() {
       try {
-        const res = await fetch(`/api/public-shop?slug=${encodeURIComponent(slug)}`);
+        const res = await fetch(`${getApiUrl('public-shop')}?slug=${encodeURIComponent(slug)}`, {
+          headers: apiHeaders,
+        });
         if (!res.ok) throw new Error('NOT_FOUND');
         const data = await res.json();
         setShop(data);
@@ -807,16 +825,47 @@ export function BookingApp() {
 
   useEffect(() => {
     if (!shop || !selectedServiceId) return;
-    const slots: string[] = [];
-    const times = ['09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
-    for (const tm of times) {
-      slots.push(`${selectedDate}T${tm}:00+03:00`);
+
+    let cancelled = false;
+    async function loadSlots() {
+      try {
+        let url = `${getApiUrl('public-slots')}?slug=${encodeURIComponent(slug)}&service_id=${encodeURIComponent(selectedServiceId)}&date=${encodeURIComponent(selectedDate)}`;
+        if (selectedProviderId) {
+          url += `&provider_id=${encodeURIComponent(selectedProviderId)}`;
+        }
+        const res = await fetch(url, { headers: apiHeaders });
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && Array.isArray(data.slots)) {
+            setAvailableSlots(data.slots);
+            if (data.slots.length > 0 && (!selectedSlot || !selectedSlot.startsWith(selectedDate))) {
+              setSelectedSlot(data.slots[0]);
+            }
+            return;
+          }
+        }
+      } catch {
+        // Fall back to local generated slots
+      }
+
+      if (!cancelled) {
+        const slots: string[] = [];
+        const times = ['09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
+        for (const tm of times) {
+          slots.push(`${selectedDate}T${tm}:00+03:00`);
+        }
+        setAvailableSlots(slots);
+        if (slots.length > 0 && (!selectedSlot || !selectedSlot.startsWith(selectedDate))) {
+          setSelectedSlot(slots[0]);
+        }
+      }
     }
-    setAvailableSlots(slots);
-    if (slots.length > 0 && (!selectedSlot || !selectedSlot.startsWith(selectedDate))) {
-      setSelectedSlot(slots[0]);
-    }
-  }, [shop, selectedServiceId, selectedProviderId, selectedDate]);
+
+    void loadSlots();
+    return () => {
+      cancelled = true;
+    };
+  }, [shop, selectedServiceId, selectedProviderId, selectedDate, slug]);
 
   const handleConfirm = async () => {
     if (!customerName.trim()) {
@@ -850,9 +899,9 @@ export function BookingApp() {
     };
 
     try {
-      const res = await fetch('/api/public-book', {
+      const res = await fetch(getApiUrl('public-book'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: apiHeaders,
         body: JSON.stringify(payload),
       });
 
@@ -975,26 +1024,25 @@ export function BookingApp() {
             {t.ethTimeToggle}
           </button>
 
-          <div style={{ display: 'flex', borderRadius: '6px', border: '1px solid var(--color-line)', overflow: 'hidden' }}>
-            {(['en', 'am', 'om'] as Locale[]).map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => setLocale(lang)}
-                style={{
-                  padding: '4px 6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  border: 'none',
-                  backgroundColor: locale === lang ? 'var(--color-ink)' : 'var(--color-surface)',
-                  color: locale === lang ? 'var(--color-paper)' : 'var(--color-slate)',
-                  cursor: 'pointer',
-                }}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          <select
+            value={locale}
+            onChange={(e) => setLocale((e.target as HTMLSelectElement).value as Locale)}
+            aria-label="Language"
+            style={{
+              padding: '4px 8px',
+              fontSize: '12px',
+              fontWeight: 500,
+              borderRadius: '6px',
+              border: '1px solid var(--color-line)',
+              backgroundColor: 'var(--color-surface)',
+              color: 'var(--color-ink)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="en">English (EN)</option>
+            <option value="am">አማርኛ (AM)</option>
+            <option value="om">Afaan Oromoo (OM)</option>
+          </select>
         </div>
       </header>
 
@@ -1071,7 +1119,7 @@ export function BookingApp() {
                         {s.duration_min} mins
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--color-st-confirmed)', fontWeight: 600, marginTop: '4px' }}>
-                        ✓ {t.nextAvailable}: Today
+                        {t.nextAvailable}: Today
                       </div>
                     </div>
 
@@ -1379,8 +1427,16 @@ export function BookingApp() {
         {step === 4 && confirmedBooking && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>
-                {confirmedBooking.status === 'confirmed' ? '✅' : '⏳'}
+              <div style={{ width: '48px', height: '48px', margin: '0 auto 12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: confirmedBooking.status === 'confirmed' ? 'rgba(15, 123, 95, 0.15)' : 'rgba(224, 160, 48, 0.15)' }}>
+                {confirmedBooking.status === 'confirmed' ? (
+                  <svg width="24" height="24" fill="none" stroke="var(--color-st-confirmed)" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" fill="none" stroke="var(--color-st-pending)" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                )}
               </div>
               <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-ink)' }}>
                 {confirmedBooking.status === 'confirmed' ? t.confirmedTitle : t.pendingTitle}
@@ -1434,7 +1490,7 @@ export function BookingApp() {
                   cursor: 'pointer',
                 }}
               >
-                📅 {t.addToCalendar}
+                {t.addToCalendar}
               </button>
 
               <button
@@ -1451,7 +1507,7 @@ export function BookingApp() {
                   cursor: 'pointer',
                 }}
               >
-                🔗 {t.shareBtn}
+                {t.shareBtn}
               </button>
 
               <a

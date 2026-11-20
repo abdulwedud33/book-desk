@@ -11,7 +11,7 @@ import { CardSkeleton, RowSkeleton } from '../components/skeleton.tsx';
 import { db, type LocalBooking } from '../lib/db.ts';
 import { subscribeToBookings } from '../lib/realtime.ts';
 import { queueStatusChange } from '../lib/outbox.ts';
-import { t } from '../i18n/index.ts';
+import { useI18n } from '../i18n/index.ts';
 import { formatTimeWithPartOfDay } from '../domain/time.ts';
 
 export default function TodayPage() {
@@ -22,9 +22,10 @@ export default function TodayPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [remindersBadge, setRemindersBadge] = useState(0);
   const { showToast } = useToast();
+  const { t } = useI18n();
 
-  const catalog = t().common;
-  const navCatalog = t().nav;
+  const catalog = t.common;
+  const navCatalog = t.nav;
   const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -153,7 +154,11 @@ export default function TodayPage() {
         {pendingCount > 0 && (
           <div className="bg-amber-500/15 border border-amber-500/40 rounded-card p-3 flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2.5">
-              <span className="text-lg">🔔</span>
+              <div className="w-8 h-8 rounded-control bg-amber-500/20 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
               <div>
                 <p className="text-xs font-bold text-amber-950">
                   {pendingCount} Pending Request{pendingCount !== 1 ? 's' : ''}

@@ -181,10 +181,10 @@ export default function OnboardingPage() {
                         : 'border-line bg-surface text-ink hover:border-slate'
                     }`}
                   >
-                    {type === 'salon' && '✂️ Salon / Barber'}
-                    {type === 'clinic' && '🩺 Clinic'}
-                    {type === 'tutor' && '📚 Tutor'}
-                    {type === 'garage' && '🔧 Garage'}
+                    {type === 'salon' && 'Salon / Barber'}
+                    {type === 'clinic' && 'Clinic'}
+                    {type === 'tutor' && 'Tutor'}
+                    {type === 'garage' && 'Garage'}
                   </button>
                 ))}
               </div>
@@ -237,8 +237,15 @@ export default function OnboardingPage() {
               {/* Reserved status indicator space (prevents layout jump) */}
               <div className="h-5 flex items-center text-xs">
                 {slugStatus === 'checking' && <span className="text-slate">Checking availability...</span>}
-                {slugStatus === 'available' && <span className="text-st-confirmed font-medium">✓ {catalog.slugAvailable}</span>}
-                {slugStatus === 'unavailable' && <span className="text-st-noshow font-medium">✕ {catalog.slugUnavailable}</span>}
+                {slugStatus === 'available' && (
+                  <span className="text-st-confirmed font-medium flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    {catalog.slugAvailable}
+                  </span>
+                )}
+                {slugStatus === 'unavailable' && <span className="text-st-noshow font-medium">{catalog.slugUnavailable}</span>}
               </div>
             </div>
 
@@ -285,8 +292,10 @@ export default function OnboardingPage() {
         {/* Step 3: Ready to Share */}
         {step === 3 && (
           <div className="space-y-6 text-center animate-fadeIn pt-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-st-confirmed/15 text-st-confirmed flex items-center justify-center text-2xl">
-              ✓
+            <div className="w-16 h-16 mx-auto rounded-full bg-st-confirmed/15 text-st-confirmed flex items-center justify-center">
+              <svg className="w-8 h-8 text-st-confirmed" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
             </div>
             <div>
               <h1 className="font-heading text-2xl text-ink font-semibold">{catalog.readyTitle}</h1>

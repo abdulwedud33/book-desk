@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getLocale, setLocale, type Locale } from '../i18n/index.ts';
+import React from 'react';
+import { useI18n, type Locale } from '../i18n/index.ts';
 
 interface LanguageSwitchProps {
   className?: string;
@@ -9,53 +9,35 @@ interface LanguageSwitchProps {
 }
 
 export function LanguageSwitch({ className = '', onLocaleChange }: LanguageSwitchProps) {
-  const [activeLocale, setActiveLocale] = useState<Locale>('en');
+  const { locale, setLocale } = useI18n();
 
-  useEffect(() => {
-    setActiveLocale(getLocale());
-  }, []);
-
-  const handleSelect = (locale: Locale) => {
-    setLocale(locale);
-    setActiveLocale(locale);
-    onLocaleChange?.(locale);
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextLocale = e.target.value as Locale;
+    setLocale(nextLocale);
+    onLocaleChange?.(nextLocale);
   };
 
   return (
-    <div className={`inline-flex rounded-control border border-line p-0.5 bg-surface ${className}`} role="group" aria-label="Language Selector">
-      <button
-        type="button"
-        onClick={() => handleSelect('en')}
-        className={`px-2.5 py-1 text-xs font-semibold rounded-control transition-colors ${
-          activeLocale === 'en'
-            ? 'bg-plum text-on-plum'
-            : 'text-slate hover:text-ink'
-        }`}
+    <div className={`relative inline-flex items-center ${className}`}>
+      <select
+        value={locale}
+        onChange={handleChange}
+        aria-label="Language"
+        className="appearance-none bg-surface text-ink border border-line rounded-control text-xs font-medium py-1.5 pl-2.5 pr-7 focus:outline-none focus:ring-1 focus:ring-plum transition-colors cursor-pointer"
       >
-        EN
-      </button>
-      <button
-        type="button"
-        onClick={() => handleSelect('am')}
-        className={`px-2.5 py-1 text-xs font-semibold rounded-control transition-colors ${
-          activeLocale === 'am'
-            ? 'bg-plum text-on-plum'
-            : 'text-slate hover:text-ink'
-        }`}
+        <option value="en">English (EN)</option>
+        <option value="am">አማርኛ (AM)</option>
+        <option value="om">Afaan Oromoo (OM)</option>
+      </select>
+      <svg
+        className="w-3.5 h-3.5 text-slate absolute right-2 pointer-events-none"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
       >
-        አማ
-      </button>
-      <button
-        type="button"
-        onClick={() => handleSelect('om')}
-        className={`px-2.5 py-1 text-xs font-semibold rounded-control transition-colors ${
-          activeLocale === 'om'
-            ? 'bg-plum text-on-plum'
-            : 'text-slate hover:text-ink'
-        }`}
-      >
-        ORO
-      </button>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
     </div>
   );
 }

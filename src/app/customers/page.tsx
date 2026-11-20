@@ -8,7 +8,7 @@ import { LanguageSwitch } from '../../components/language-switch.tsx';
 import { CardSkeleton, RowSkeleton } from '../../components/skeleton.tsx';
 import { db, type LocalCustomer, type LocalBooking } from '../../lib/db.ts';
 import { supabase } from '../../lib/supabase.ts';
-import { t } from '../../i18n/index.ts';
+import { useI18n } from '../../i18n/index.ts';
 import { generateCsv } from '../../domain/csv.ts';
 import { formatTimeWithPartOfDay, formatDateInTz } from '../../domain/time.ts';
 
@@ -22,9 +22,10 @@ export default function CustomersPage() {
   const [editingNotes, setEditingNotes] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { showToast } = useToast();
+  const { t } = useI18n();
 
-  const catalog = t().customers;
-  const common = t().common;
+  const catalog = t.customers;
+  const common = t.common;
 
   useEffect(() => {
     async function loadData() {
@@ -301,14 +302,19 @@ export default function CustomersPage() {
             className="w-full px-3 py-2 pl-9 bg-surface border border-line rounded-control text-sm text-ink placeholder:text-slate focus:outline-none focus:border-plum"
             aria-label="Search customers"
           />
-          <span className="absolute left-3 top-2.5 text-xs text-slate">🔍</span>
+          <svg className="w-4 h-4 text-slate absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-2 text-xs text-slate hover:text-ink"
+              className="absolute right-3 top-2.5 text-xs text-slate hover:text-ink"
+              aria-label="Clear search"
             >
-              ✕
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
@@ -318,7 +324,11 @@ export default function CustomersPage() {
           <RowSkeleton count={4} />
         ) : filteredCustomers.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-line rounded-card bg-surface/50 space-y-2">
-            <span className="text-3xl block">👤</span>
+            <div className="w-10 h-10 mx-auto rounded-full bg-paper border border-line flex items-center justify-center text-slate">
+              <svg className="w-5 h-5 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
             <p className="text-sm font-medium text-slate">{catalog.empty}</p>
           </div>
         ) : (
@@ -362,7 +372,7 @@ export default function CustomersPage() {
 
                       {cust.noShowCount >= 2 && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-st-noshow/15 text-st-noshow">
-                          ⚠️ {cust.noShowCount} {catalog.noShows}
+                          {cust.noShowCount} {catalog.noShows}
                         </span>
                       )}
                     </div>
@@ -386,7 +396,7 @@ export default function CustomersPage() {
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
         >
-          <div className="bg-surface border border-line w-full max-w-md rounded-t-card sm:rounded-card max-h-[90vh] flex flex-col shadow-xl">
+          <div className="bg-surface border border-line w-full max-w-md rounded-t-card sm:rounded-card max-h-[90vh] flex flex-col shadow-md">
             {/* Header */}
             <div className="p-4 border-b border-line flex justify-between items-center bg-surface sticky top-0 z-10 rounded-t-card">
               <div>
@@ -395,7 +405,10 @@ export default function CustomersPage() {
                   href={`tel:${selectedCustomer.phoneE164}`}
                   className="text-xs text-plum font-mono hover:underline flex items-center gap-1"
                 >
-                  <span>📞</span> {selectedCustomer.phoneE164} (Tap to Call)
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {selectedCustomer.phoneE164} (Tap to Call)
                 </a>
               </div>
               <button
@@ -404,7 +417,9 @@ export default function CustomersPage() {
                 className="w-8 h-8 rounded-full border border-line text-slate hover:text-ink flex items-center justify-center text-sm"
                 aria-label="Close"
               >
-                ✕
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -414,7 +429,9 @@ export default function CustomersPage() {
               {selectedCustomer.noShowCount >= 2 && (
                 <div className="bg-amber-500/15 border border-amber-500/40 rounded-card p-3 space-y-1">
                   <div className="flex items-center gap-2 font-bold text-amber-950">
-                    <span>⚠️</span>
+                    <svg className="w-4 h-4 text-amber-800 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
                     <span>Repeat No-Show Customer ({selectedCustomer.noShowCount} missed)</span>
                   </div>
                   <p className="text-amber-900/80 leading-relaxed">
@@ -425,8 +442,11 @@ export default function CustomersPage() {
 
               {/* Blocked Notice */}
               {selectedCustomer.blocked && (
-                <div className="bg-st-noshow/10 border border-st-noshow/30 rounded-card p-3 text-st-noshow font-medium">
-                  🛑 This phone number is blocked from booking online.
+                <div className="bg-st-noshow/10 border border-st-noshow/30 rounded-card p-3 text-st-noshow font-medium flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                  This phone number is blocked from booking online.
                 </div>
               )}
 
@@ -550,7 +570,10 @@ export default function CustomersPage() {
                     onClick={handleExportCsv}
                     className="w-full py-2 bg-surface border border-line text-ink font-semibold rounded-control hover:bg-line active:scale-95 transition-all flex items-center justify-center gap-1.5"
                   >
-                    <span>📊</span> {catalog.exportData}
+                    <svg className="w-3.5 h-3.5 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {catalog.exportData}
                   </button>
 
                   <button
@@ -558,7 +581,10 @@ export default function CustomersPage() {
                     onClick={() => setShowDeleteModal(true)}
                     className="w-full py-2 bg-st-noshow/10 text-st-noshow font-semibold rounded-control hover:bg-st-noshow/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
                   >
-                    <span>🗑️</span> {catalog.deleteCustomer}
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {catalog.deleteCustomer}
                   </button>
                 </div>
               )}
@@ -574,7 +600,7 @@ export default function CustomersPage() {
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 animate-in fade-in"
         >
-          <div className="bg-surface border border-line max-w-sm w-full rounded-card p-5 space-y-3 shadow-2xl">
+          <div className="bg-surface border border-line max-w-sm w-full rounded-card p-5 space-y-3 shadow-md">
             <h3 className="font-heading text-base font-bold text-ink text-st-noshow">
               {catalog.deleteConfirmTitle}
             </h3>

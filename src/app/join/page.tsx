@@ -64,8 +64,11 @@ export default function JoinPage() {
 
           {success ? (
             <div className="p-4 bg-st-confirmed/15 border border-st-confirmed/30 rounded-control text-center">
-              <p className="text-st-confirmed font-semibold text-sm">
-                ✓ {catalog.successMessage}
+              <p className="text-st-confirmed font-semibold text-sm flex items-center justify-center gap-1.5">
+                <svg className="w-4 h-4 text-st-confirmed" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                {catalog.successMessage}
               </p>
               <p className="text-xs text-slate mt-1">Redirecting to calendar...</p>
             </div>

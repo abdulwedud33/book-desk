@@ -7,7 +7,7 @@ import { LanguageSwitch } from '../../components/language-switch.tsx';
 import { CardSkeleton, RowSkeleton } from '../../components/skeleton.tsx';
 import { db, type LocalBooking, type LocalProvider, type LocalService } from '../../lib/db.ts';
 import { supabase } from '../../lib/supabase.ts';
-import { t } from '../../i18n/index.ts';
+import { useI18n } from '../../i18n/index.ts';
 import { generateCsv } from '../../domain/csv.ts';
 import {
   computeDashboardSummary,
@@ -46,9 +46,10 @@ export default function ReportsPage() {
   const [providers, setProviders] = useState<LocalProvider[]>([]);
 
   const { showToast } = useToast();
-  const catalog = t().reports;
-  const common = t().common;
-  const assistantCatalog = t().assistant;
+  const { t } = useI18n();
+  const catalog = t.reports;
+  const common = t.common;
+  const assistantCatalog = t.assistant;
   const [showAiInsights, setShowAiInsights] = useState(true);
 
   // Compute date boundaries based on selected period
@@ -270,7 +271,10 @@ export default function ReportsPage() {
             <div className="flex justify-between items-center border-b border-plum/15 pb-2">
               <div>
                 <h2 className="font-heading text-xs font-bold text-plum uppercase tracking-wider flex items-center gap-1.5">
-                  ✨ {assistantCatalog.insightsTitle}
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  {assistantCatalog.insightsTitle}
                 </h2>
                 <p className="text-[11px] text-slate">{assistantCatalog.insightsSubtitle}</p>
               </div>
@@ -337,7 +341,10 @@ export default function ReportsPage() {
                 onClick={handleExportCsv}
                 className="px-3 py-1.5 bg-paper border border-line text-xs font-semibold rounded-control hover:bg-line active:scale-95 transition-all flex items-center gap-1.5"
               >
-                <span>📊</span> {catalog.exportCsv}
+                <svg className="w-3.5 h-3.5 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {catalog.exportCsv}
               </button>
             </div>
 

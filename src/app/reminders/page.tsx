@@ -9,7 +9,7 @@ import { CardSkeleton, RowSkeleton } from '../../components/skeleton.tsx';
 import { db, type LocalBooking, type LocalReminder } from '../../lib/db.ts';
 import { queueStatusChange, queueCancelBooking, queueCompleteReminder } from '../../lib/outbox.ts';
 import { subscribeToBookings, subscribeToReminders, playAlertChime } from '../../lib/realtime.ts';
-import { t } from '../../i18n/index.ts';
+import { useI18n } from '../../i18n/index.ts';
 import {
   formatPreparedMessage,
   isReminderOverdue,
@@ -25,10 +25,11 @@ export default function RemindersPage() {
   const [reminders, setReminders] = useState<LocalReminder[]>([]);
   const [pendingBookings, setPendingBookings] = useState<LocalBooking[]>([]);
   const { showToast } = useToast();
+  const { t, locale } = useI18n();
 
-  const currentLang = (typeof window !== 'undefined' && (localStorage.getItem('bookdesk_lang') as 'en' | 'am' | 'om')) || 'en';
-  const catalog = t().reminders;
-  const common = t().common;
+  const currentLang = locale;
+  const catalog = t.reminders;
+  const common = t.common;
 
   useEffect(() => {
     async function loadData() {
@@ -213,7 +214,9 @@ export default function RemindersPage() {
           <section className="bg-amber-500/10 border-2 border-amber-500/40 rounded-card p-4 space-y-3">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-base">🔔</span>
+                <svg className="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
                 <h2 className="font-heading text-sm font-bold text-amber-900">
                   {catalog.pendingTitle} ({pendingBookings.length})
                 </h2>
@@ -221,10 +224,13 @@ export default function RemindersPage() {
               <button
                 type="button"
                 onClick={() => playAlertChime()}
-                className="text-xs text-amber-800 hover:underline flex items-center gap-1"
+                className="text-xs text-amber-800 hover:underline flex items-center gap-1.5"
                 title="Test sound chime"
               >
-                <span>🔊</span> Test Chime
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                Test Chime
               </button>
             </div>
             <p className="text-xs text-amber-900/80">{catalog.pendingSubtitle}</p>
@@ -258,14 +264,14 @@ export default function RemindersPage() {
                       onClick={() => handleAcceptPending(b)}
                       className="flex-1 py-1.5 bg-st-confirmed text-white text-xs font-semibold rounded-control hover:opacity-90 active:scale-95 transition-all"
                     >
-                      ✓ {catalog.accept}
+                      {catalog.accept}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeclinePending(b)}
                       className="flex-1 py-1.5 bg-line text-slate hover:text-ink text-xs font-semibold rounded-control active:scale-95 transition-all"
                     >
-                      ✕ {catalog.decline}
+                      {catalog.decline}
                     </button>
                   </div>
                 </div>
@@ -315,7 +321,11 @@ export default function RemindersPage() {
             <RowSkeleton count={3} />
           ) : filteredReminders.length === 0 ? (
             <div className="p-8 text-center border border-dashed border-line rounded-card bg-surface/50 space-y-2">
-              <span className="text-3xl block">✨</span>
+              <div className="w-10 h-10 mx-auto rounded-full bg-paper border border-line flex items-center justify-center text-slate">
+                <svg className="w-5 h-5 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
               <p className="text-sm font-medium text-slate">{catalog.empty}</p>
             </div>
           ) : (
@@ -394,16 +404,22 @@ export default function RemindersPage() {
                         onClick={() => handleShareMessage('Appointment Reminder', preparedMessage)}
                         className="flex-1 py-1.5 px-2 bg-plum text-on-plum font-semibold text-xs rounded-control hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs"
                       >
-                        <span>↗</span> {common.share}
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        {common.share}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleCopyMessage(preparedMessage)}
-                        className="py-1.5 px-3 bg-surface border border-line text-ink font-semibold text-xs rounded-control hover:bg-line active:scale-95 transition-all flex items-center gap-1"
+                        className="py-1.5 px-3 bg-surface border border-line text-ink font-semibold text-xs rounded-control hover:bg-line active:scale-95 transition-all flex items-center gap-1.5"
                         title="Copy message to clipboard"
                       >
-                        <span>📋</span> {common.copy}
+                        <svg className="w-3.5 h-3.5 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        {common.copy}
                       </button>
 
                       <button
@@ -411,7 +427,7 @@ export default function RemindersPage() {
                         onClick={() => handleMarkDone(r)}
                         className="py-1.5 px-3 bg-st-confirmed/15 text-st-confirmed font-semibold text-xs rounded-control hover:bg-st-confirmed/25 active:scale-95 transition-all"
                       >
-                        ✓ {catalog.markDone}
+                        {catalog.markDone}
                       </button>
                     </div>
                   </article>

@@ -426,7 +426,7 @@ function ServicesContent() {
                               : 'bg-paper text-slate border border-line'
                           }`}
                         >
-                          {isAssigned ? '✓ ' : '+ '}{srv.name}
+                          {isAssigned ? 'Active: ' : '+ '}{srv.name}
                         </button>
                       );
                     })}
@@ -628,7 +628,7 @@ function ServicesContent() {
                         : 'border-line bg-paper text-slate'
                     }`}
                   >
-                    ⚡ Instant Confirmation
+                    Instant Confirmation
                   </button>
                   <button
                     type="button"
@@ -639,7 +639,7 @@ function ServicesContent() {
                         : 'border-line bg-paper text-slate'
                     }`}
                   >
-                    ✋ Requires Approval
+                    Requires Approval
                   </button>
                 </div>
               </div>

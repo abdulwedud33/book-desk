@@ -4,13 +4,25 @@ import path from 'node:path';
 import esbuild from 'esbuild';
 
 const OUT_DIR = 'out';
+const PUBLIC_DIR = 'public';
 const BOOKING_OUT = path.join(OUT_DIR, 'booking');
 const MANAGE_OUT = path.join(OUT_DIR, 'manage');
 const B_TEST_OUT = path.join(OUT_DIR, 'b', 'test');
+const B_ADDIS_OUT = path.join(OUT_DIR, 'b', 'addis-barber');
+const M_DEMO_OUT = path.join(OUT_DIR, 'm', 'demo');
+
+const PUBLIC_BOOKING = path.join(PUBLIC_DIR, 'booking');
+const PUBLIC_B_ADDIS = path.join(PUBLIC_DIR, 'b', 'addis-barber');
+const PUBLIC_B_TEST = path.join(PUBLIC_DIR, 'b', 'test');
 
 fs.mkdirSync(BOOKING_OUT, { recursive: true });
 fs.mkdirSync(MANAGE_OUT, { recursive: true });
 fs.mkdirSync(B_TEST_OUT, { recursive: true });
+fs.mkdirSync(B_ADDIS_OUT, { recursive: true });
+fs.mkdirSync(M_DEMO_OUT, { recursive: true });
+fs.mkdirSync(PUBLIC_BOOKING, { recursive: true });
+fs.mkdirSync(PUBLIC_B_ADDIS, { recursive: true });
+fs.mkdirSync(PUBLIC_B_TEST, { recursive: true });
 
 console.log('[Build Booking] Compiling standalone booking page bundle...');
 
@@ -113,6 +125,10 @@ h1, h2, h3 {
 `;
 
 fs.writeFileSync(path.join(BOOKING_OUT, 'index.css'), cssContent.trim(), 'utf8');
+fs.writeFileSync(path.join(PUBLIC_BOOKING, 'index.css'), cssContent.trim(), 'utf8');
+
+// Copy index.js to public/booking/index.js
+fs.copyFileSync(path.join(BOOKING_OUT, 'index.js'), path.join(PUBLIC_BOOKING, 'index.js'));
 
 // 3. Emit booking shell HTML
 const bookingHtml = `<!DOCTYPE html>
@@ -133,6 +149,12 @@ const bookingHtml = `<!DOCTYPE html>
 fs.writeFileSync(path.join(BOOKING_OUT, 'index.html'), bookingHtml, 'utf8');
 fs.writeFileSync(path.join(MANAGE_OUT, 'index.html'), bookingHtml.replace('Book Appointment', 'Manage Booking'), 'utf8');
 fs.writeFileSync(path.join(B_TEST_OUT, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(B_ADDIS_OUT, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(M_DEMO_OUT, 'index.html'), bookingHtml.replace('Book Appointment', 'Manage Booking'), 'utf8');
+
+fs.writeFileSync(path.join(PUBLIC_BOOKING, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(PUBLIC_B_TEST, 'index.html'), bookingHtml, 'utf8');
+fs.writeFileSync(path.join(PUBLIC_B_ADDIS, 'index.html'), bookingHtml, 'utf8');
 
 console.log('✅ Standalone booking page bundle generated successfully.');
 
