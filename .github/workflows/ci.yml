@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit & Property Tests
+        run: npm test
+
+      - name: Build Bundles (Static Export & Booking Shell)
+        run: npm run build
+
+      - name: Verify Bundle Secrets & Leaks
+        run: npm run scan:secrets
+
+      - name: Verify Bundle Size Budgets
+        run: npm run check:budgets
+
+      - name: Audit Dependencies
+        run: npm audit --audit-level=high

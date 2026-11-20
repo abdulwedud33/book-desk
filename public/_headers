@@ -1,0 +1,14 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+/b/*
+  X-Robots-Tag: noindex
+  Referrer-Policy: no-referrer
+
+/m/*
+  X-Robots-Tag: noindex
+  Referrer-Policy: no-referrer

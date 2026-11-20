@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #1A1B25;
+  --color-paper: #F5F6F9;
+  --color-surface: #FFFFFF;
+  --color-line: #DEE1E8;
+  --color-slate: #5C6370;
+  --color-plum: #6A3FA0;
+  --color-on-plum: #FFFFFF;
+  --color-st-confirmed: #0F7B5F;
+  --color-st-pending: #E0A030;
+  --color-st-pending-text: #8A5600;
+  --color-st-active: #1D5FD1;
+  --color-st-noshow: #B3402F;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink: #ECEDF3;
+    --color-paper: #0F1117;
+    --color-surface: #181B24;
+    --color-line: #2A2F3B;
+    --color-slate: #9CA3B2;
+    --color-plum: #B79CF0;
+    --color-on-plum: #14091F;
+    --color-st-confirmed: #3DBE97;
+    --color-st-pending: #E0A030;
+    --color-st-pending-text: #E0A030;
+    --color-st-active: #6FA2FF;
+    --color-st-noshow: #F08070;
+  }
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-feature-settings: "tnum";
+}

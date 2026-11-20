@@ -1,0 +1,38 @@
+{
+  "name": "book-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "dev:booking": "node scripts/dev-booking.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.ts\" \"booking-page/**/*.test.ts\"",
+    "test:db": "node scripts/test-db.mjs",
+    "build:booking": "node scripts/build-booking.mjs",
+    "build:next": "next build",
+    "build": "next build && node scripts/build-booking.mjs && node scripts/generate-csp.mjs && node scripts/scan-bundle-secrets.mjs && node scripts/check-budgets.mjs",
+    "scan:secrets": "node scripts/scan-bundle-secrets.mjs",
+    "generate:csp": "node scripts/generate-csp.mjs",
+    "check:budgets": "node scripts/check-budgets.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1",
+    "dexie": "^4.0.11",
+    "next": "^15.1.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.20",
+    "esbuild": "^0.25.0",
+    "fast-check": "^3.23.2",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,6 @@
+# Cloudflare Pages / Netlify static rewrite rules
+# Route public booking URLs to the booking shell
+/b/*    /booking/index.html    200
+
+# Route customer manage URLs to the manage shell
+/m/*    /manage/index.html     200
