@@ -47,10 +47,8 @@ export function localToUtc(dateStr: string, timeStr: string, timeZone: string): 
   const second = sStr ? parseInt(sStr, 10) : 0;
 
   // Compute timezone offset by comparing UTC representation
-  // Create a base UTC date
   const baseUtc = new Date(Date.UTC(year, month, day, hour, minute, second));
   
-  // Format the date in target timezone to find actual parts
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -70,7 +68,6 @@ export function localToUtc(dateStr: string, timeStr: string, timeZone: string): 
     }
   }
 
-  // Target local time in milliseconds
   const targetMs = Date.UTC(pMap.year, pMap.month - 1, pMap.day, pMap.hour, pMap.minute, pMap.second);
   const offsetMs = targetMs - baseUtc.getTime();
 
@@ -98,4 +95,33 @@ export function formatDateInTz(date: Date, timeZone: string): string {
     day: '2-digit',
   });
   return formatter.format(date);
+}
+
+/**
+ * Formats a Date with a part-of-day word (e.g. "3:30 in the afternoon", "9:00 in the morning")
+ * per the standing non-negotiable rule.
+ */
+export function formatTimeWithPartOfDay(date: Date, timeZone: string): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  const parts = formatter.formatToParts(date);
+  let hour = '';
+  let minute = '';
+  for (const p of parts) {
+    if (p.type === 'hour') hour = p.value;
+    if (p.type === 'minute') minute = p.value;
+  }
+
+  const formatter24 = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    hourCycle: 'h23',
+  });
+  const hour24 = parseInt(formatter24.format(date), 10);
+  const part = getPartOfDay(hour24);
+  return `${hour}:${minute} in the ${part}`;
 }

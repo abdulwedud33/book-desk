@@ -49,11 +49,42 @@ export function CardSkeleton() {
   );
 }
 
+export function RowSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-surface border border-line rounded-card p-3 flex justify-between items-center">
+          <div className="space-y-1 w-2/3">
+            <Skeleton height={16} width="50%" />
+            <Skeleton height={12} width="80%" />
+          </div>
+          <Skeleton height={24} width={64} rounded="full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ChipGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {Array.from({ length: count }).map((_, i) => (
         <Skeleton key={i} height={48} rounded="control" />
+      ))}
+    </div>
+  );
+}
+
+export function CalendarGridSkeleton({ hours = 6 }: { hours?: number }) {
+  return (
+    <div className="border border-line rounded-card divide-y divide-line bg-surface">
+      {Array.from({ length: hours }).map((_, i) => (
+        <div key={i} className="h-16 flex items-center px-3 gap-3">
+          <Skeleton height={14} width={40} />
+          <div className="flex-1">
+            {i % 2 === 0 ? <Skeleton height={42} rounded="control" /> : null}
+          </div>
+        </div>
       ))}
     </div>
   );

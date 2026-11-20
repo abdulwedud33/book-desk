@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface BannerProps {
-  type?: 'offline' | 'pending' | 'warning';
+  type?: 'offline' | 'pending' | 'warning' | 'conflict';
   message: string;
   actionLabel?: string;
   onAction?: () => void;
@@ -21,6 +21,7 @@ export function Banner({
     offline: 'bg-slate/15 text-slate border-slate/30',
     pending: 'bg-st-pending/20 text-st-pending-text border-st-pending/40',
     warning: 'bg-st-noshow/15 text-st-noshow border-st-noshow/30',
+    conflict: 'bg-rose-500/15 text-rose-700 border-rose-500/30',
   }[type];
 
   return (

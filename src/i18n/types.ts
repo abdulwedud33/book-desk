@@ -54,6 +54,40 @@ export interface Catalog {
     copyLinkButton: string;
     goToAppButton: string;
   };
+  calendar: {
+    title: string;
+    day: string;
+    week: string;
+    allProviders: string;
+    noBookings: string;
+    tapToBook: string;
+    notConfirmedYet: string;
+    needsAttention: string;
+    reschedule: string;
+    cancel: string;
+  };
+  booking: {
+    newTitle: string;
+    walkIn: string;
+    walkInDesc: string;
+    selectService: string;
+    selectProvider: string;
+    selectTime: string;
+    anyProvider: string;
+    customerName: string;
+    customerPhone: string;
+    notes: string;
+    createBooking: string;
+    createdSuccess: string;
+    details: string;
+    status: string;
+    timeline: string;
+    markArrived: string;
+    startService: string;
+    completeService: string;
+    markNoShow: string;
+    cancelReasonPrompt: string;
+  };
   nav: {
     today: string;
     calendar: string;
