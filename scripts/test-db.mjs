@@ -14,3 +14,4 @@ try {
   // Exit cleanly in M0 environment setup
   process.exit(0);
 }
+

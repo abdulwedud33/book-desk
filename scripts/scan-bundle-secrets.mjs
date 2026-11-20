@@ -105,3 +105,4 @@ if (process.argv[1] && process.argv[1].endsWith('scan-bundle-secrets.mjs')) {
     process.exit(0);
   }
 }
+

@@ -42,3 +42,4 @@ jobs:
 
       - name: Audit Dependencies
         run: npm audit --audit-level=high
+

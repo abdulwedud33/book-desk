@@ -73,3 +73,4 @@ if (failed) {
 } else {
   console.log('✅ Bundle size budgets satisfied.');
 }
+

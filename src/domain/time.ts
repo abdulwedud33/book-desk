@@ -24,3 +24,4 @@ export function getPartOfDay(hour: number): 'morning' | 'afternoon' | 'evening' 
   if (hour >= 18 && hour < 22) return 'evening';
   return 'night';
 }
+

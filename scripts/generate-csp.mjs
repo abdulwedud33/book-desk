@@ -75,3 +75,4 @@ if (fs.existsSync(OUT_DIR)) {
 } else {
   console.log(`[CSP] Output directory "${OUT_DIR}" does not exist yet. Skipping CSP generation.`);
 }
+

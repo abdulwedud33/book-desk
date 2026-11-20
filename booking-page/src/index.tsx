@@ -58,3 +58,4 @@ const rootElement = document.getElementById('booking-root');
 if (rootElement) {
   createRoot(rootElement).render(<BookingApp />);
 }
+

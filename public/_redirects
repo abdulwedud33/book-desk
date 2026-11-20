@@ -4,3 +4,4 @@
 
 # Route customer manage URLs to the manage shell
 /m/*    /manage/index.html     200
+

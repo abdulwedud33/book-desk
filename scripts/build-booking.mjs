@@ -127,3 +127,4 @@ fs.writeFileSync(path.join(MANAGE_OUT, 'index.html'), bookingHtml.replace('Book 
 fs.writeFileSync(path.join(B_TEST_OUT, 'index.html'), bookingHtml, 'utf8');
 
 console.log('✅ Standalone booking page bundle generated successfully.');
+
