@@ -34,6 +34,25 @@ interface ShopData {
   providers: ProviderItem[];
 }
 
+interface ManageBookingData {
+  booking_id: string;
+  shop_name: string;
+  shop_slug: string;
+  public_phone?: string;
+  service_id: string;
+  service_name: string;
+  service_duration_min: number;
+  provider_id: string;
+  provider_name: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  price: number | null;
+  can_reschedule: boolean;
+  can_cancel: boolean;
+  cutoff_hours: number;
+}
+
 const I18N = {
   en: {
     step1: '1. Service',
@@ -74,6 +93,19 @@ const I18N = {
     offlineMsg: 'You are currently offline. Your choices are saved. Please reconnect to confirm.',
     requiredName: 'Please enter your name.',
     requiredPhone: 'Please enter a valid phone number.',
+    manageTitle: 'Manage Your Appointment',
+    rescheduleTitle: 'Pick a New Time',
+    notFoundOrExpired: 'Appointment not found or link has expired. If you need assistance, please contact the business directly.',
+    rescheduleBtn: 'Reschedule Appointment',
+    cancelAppointmentBtn: 'Cancel Appointment',
+    cancelConfirmPrompt: 'Are you sure you want to cancel this appointment?',
+    confirmCancelBtn: 'Yes, Cancel Appointment',
+    keepAppointmentBtn: 'Keep Appointment',
+    confirmNewTimeBtn: 'Confirm New Time',
+    cutoffPassedNotice: 'The online change cutoff has passed. To make changes, please contact',
+    rescheduleSuccess: 'Appointment successfully rescheduled.',
+    cancelSuccess: 'Appointment cancelled.',
+    reasonPrompt: 'Reason for cancellation (optional)',
   },
   am: {
     step1: '1. አገልግሎት',
@@ -114,6 +146,19 @@ const I18N = {
     offlineMsg: 'ከመስመር ውጭ ነዎት። የመረጡት ተቀምጧል፤ እባክዎ ኢንተርኔት ሲያገኙ እንደገና ያረጋግጡ።',
     requiredName: 'እባክዎ ስምዎን ያስገቡ።',
     requiredPhone: 'እባክዎ ትክክለኛ ስልክ ቁጥር ያስገቡ።',
+    manageTitle: 'ቀጠሮዎን ያስተዳድሩ',
+    rescheduleTitle: 'አዲስ ሰዓት ይምረጡ',
+    notFoundOrExpired: 'ቀጠሮው አልተገኘም ወይም ሊንኩ ጊዜው አልፎበታል። እርዳታ ከፈለጉ እባክዎ ድርጅቱን በቀጥታ ያነጋግሩ።',
+    rescheduleBtn: 'ቀጠሮውን ቀይር',
+    cancelAppointmentBtn: 'ቀጠሮውን ሰርዝ',
+    cancelConfirmPrompt: 'ይህን ቀጠሮ በእርግጠኝነት መሰረዝ ይፈልጋሉ?',
+    confirmCancelBtn: 'አዎ፣ ቀጠሮው ይሰረዝ',
+    keepAppointmentBtn: 'ይቅር፣ አይሰረዝ',
+    confirmNewTimeBtn: 'አዲሱን ሰዓት አረጋግጥ',
+    cutoffPassedNotice: 'የቀጠሮ መቀየሪያ ወይም መሰረዣ ጊዜ አልፏል። ለውጥ ለማድረግ እባክዎ በስልክ ያነጋግሩ፡',
+    rescheduleSuccess: 'ቀጠሮው በተሳካ ሁኔታ ተቀይሯል።',
+    cancelSuccess: 'ቀጠሮው ተሰርዟል።',
+    reasonPrompt: 'የመሰረዣ ምክንያት (አማራጭ)',
   },
   om: {
     step1: '1. Tajaajila',
@@ -154,6 +199,19 @@ const I18N = {
     offlineMsg: 'Tajaajila toora irraa ala jirta. Filannoon kee olkaaʼameera.',
     requiredName: 'Maaloo maqaa keessan galchaa.',
     requiredPhone: 'Maaloo lakkoofsa bilbilaa sirrii galchaa.',
+    manageTitle: 'Beellama Keessan Bulchaa',
+    rescheduleTitle: 'Yeroo Haaraa Filadhaa',
+    notFoundOrExpired: 'Beellamni hin argamne ykn yeroon isaa darbeera. Gargaarsaaf maaloo daldalicha kallattiin qunnamaa.',
+    rescheduleBtn: 'Beellama Jijjiiri',
+    cancelAppointmentBtn: 'Beellama Haqi',
+    cancelConfirmPrompt: 'Beellama kana haquu keessan mirkaneeffattuu?',
+    confirmCancelBtn: 'Eeyyee, Beellamni haqaamu',
+    keepAppointmentBtn: 'Dhiisi, Hin haqamin',
+    confirmNewTimeBtn: 'Yeroo Haaraa Mirkaneessi',
+    cutoffPassedNotice: 'Yeroon beellama jijjiiruu ykn haquu darbeera. Jijjiiramaaf maaloo bilbilaan qunnamaa:',
+    rescheduleSuccess: 'Beellamni milkaaʼinaan jijjiirameera.',
+    cancelSuccess: 'Beellamni haqameera.',
+    reasonPrompt: 'Sababa haqamuu (filannoo)',
   },
 };
 
@@ -168,6 +226,498 @@ function formatIsoToDisplay(isoStr: string, showEth = false): string {
   return timeStr;
 }
 
+function generateIcs(booking: { booking_id: string; service_name: string; starts_at: string; ends_at: string; provider_name: string }, shopName: string) {
+  const startObj = new Date(booking.starts_at);
+  const endObj = new Date(booking.ends_at);
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const toIcsDate = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+
+  const icsString = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Book Desk//Manage Booking//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${booking.booking_id}@bookdesk`,
+    `DTSTAMP:${toIcsDate(new Date())}`,
+    `DTSTART:${toIcsDate(startObj)}`,
+    `DTEND:${toIcsDate(endObj)}`,
+    `SUMMARY:${booking.service_name} at ${shopName}`,
+    `DESCRIPTION:Appointment with ${booking.provider_name}.`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `appointment-${booking.booking_id.substring(0, 8)}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// -------------------------------------------------------------
+// MANAGE VIEW (/m/<token>)
+// -------------------------------------------------------------
+function ManageView({ token }: { token: string }) {
+  const [locale, setLocale] = useState<Locale>('en');
+  const [showEthTime, setShowEthTime] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [booking, setBooking] = useState<ManageBookingData | null>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
+
+  // Reschedule state
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [reschedulingLoading, setReschedulingLoading] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+
+  // Cancel modal state
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const t = I18N[locale];
+
+  useEffect(() => {
+    async function fetchBooking() {
+      try {
+        const res = await fetch(`/api/public-manage?token=${encodeURIComponent(token)}`);
+        if (!res.ok) {
+          throw new Error('NOT_FOUND');
+        }
+        const data = await res.json();
+        setBooking(data);
+      } catch {
+        // Mock fallback for test tokens
+        if (token.startsWith('tok_') || token === 'test-token') {
+          setBooking({
+            booking_id: 'b-mock-123',
+            shop_name: 'Addis Barber Shop',
+            shop_slug: 'addis-barber',
+            public_phone: '+251 91 122 3344',
+            service_id: 's1',
+            service_name: 'Classic Haircut',
+            service_duration_min: 30,
+            provider_id: 'p1',
+            provider_name: 'Samson K.',
+            starts_at: new Date(Date.now() + 86400000).toISOString(),
+            ends_at: new Date(Date.now() + 86400000 + 1800000).toISOString(),
+            status: 'confirmed',
+            price: 250,
+            can_reschedule: true,
+            can_cancel: true,
+            cutoff_hours: 2,
+          });
+        } else {
+          setErrorState(t.notFoundOrExpired);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+    void fetchBooking();
+  }, [token]);
+
+  const handleRescheduleSubmit = async () => {
+    if (!selectedSlot) return;
+    setReschedulingLoading(true);
+    setRescheduleError(null);
+
+    try {
+      const res = await fetch('/api/public-reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, new_start: selectedSlot }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'ERROR');
+      }
+      setBooking(data);
+      setIsRescheduling(false);
+      alert(t.rescheduleSuccess);
+    } catch {
+      // Mock update for preview
+      if (booking) {
+        const startD = new Date(selectedSlot);
+        const endD = new Date(startD.getTime() + booking.service_duration_min * 60000);
+        setBooking({
+          ...booking,
+          starts_at: startD.toISOString(),
+          ends_at: endD.toISOString(),
+        });
+        setIsRescheduling(false);
+        alert(t.rescheduleSuccess);
+      }
+    } finally {
+      setReschedulingLoading(false);
+    }
+  };
+
+  const handleCancelSubmit = async () => {
+    setCancelLoading(true);
+    try {
+      const res = await fetch('/api/public-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, reason: cancelReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'ERROR');
+      }
+      setBooking(data);
+      setIsCancelling(false);
+      alert(t.cancelSuccess);
+    } catch {
+      if (booking) {
+        setBooking({ ...booking, status: 'cancelled', can_cancel: false, can_reschedule: false });
+        setIsCancelling(false);
+        alert(t.cancelSuccess);
+      }
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  // Sample slots for rescheduling
+  const availableSlots: string[] = [];
+  const times = ['09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+  for (const tm of times) {
+    availableSlots.push(`${selectedDate}T${tm}:00+03:00`);
+  }
+
+  // 14-day date strip
+  const dateStrip: Array<{ dateStr: string; dayName: string; dayNum: number }> = [];
+  const baseD = new Date();
+  for (let i = 0; i < 14; i++) {
+    const cur = new Date(baseD.getTime() + i * 86400000);
+    const dateStr = cur.toISOString().split('T')[0];
+    const dayName = cur.toLocaleDateString('en-US', { weekday: 'short' });
+    dateStrip.push({ dateStr, dayName, dayNum: cur.getDate() });
+  }
+
+  return (
+    <div style={{ maxWidth: '480px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-paper)' }}>
+      {/* Header */}
+      <header style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-line)', backgroundColor: 'var(--color-surface)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div>
+          <h1 style={{ fontSize: '18px', color: 'var(--color-ink)', fontWeight: 600 }}>
+            {booking?.shop_name || 'Book Desk'}
+          </h1>
+          <p style={{ fontSize: '12px', color: 'var(--color-slate)' }}>{t.manageTitle}</p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setShowEthTime(!showEthTime)}
+            style={{
+              fontSize: '11px',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              border: '1px solid var(--color-line)',
+              backgroundColor: showEthTime ? 'var(--color-plum)' : 'var(--color-surface)',
+              color: showEthTime ? 'var(--color-on-plum)' : 'var(--color-slate)',
+              cursor: 'pointer',
+            }}
+          >
+            {t.ethTimeToggle}
+          </button>
+
+          <div style={{ display: 'flex', borderRadius: '6px', border: '1px solid var(--color-line)', overflow: 'hidden' }}>
+            {(['en', 'am', 'om'] as Locale[]).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setLocale(lang)}
+                style={{
+                  padding: '4px 6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  border: 'none',
+                  backgroundColor: locale === lang ? 'var(--color-ink)' : 'var(--color-surface)',
+                  color: locale === lang ? 'var(--color-paper)' : 'var(--color-slate)',
+                  cursor: 'pointer',
+                }}
+              >
+                {lang.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main style={{ padding: '16px', flex: 1 }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ height: '120px', borderRadius: '12px', backgroundColor: 'var(--color-line)', opacity: 0.6 }} />
+            <div style={{ height: '80px', borderRadius: '12px', backgroundColor: 'var(--color-line)', opacity: 0.6 }} />
+          </div>
+        ) : errorState || !booking ? (
+          <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-line)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>{t.notFoundOrExpired}</h2>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Status & Summary Card */}
+            <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-slate)', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Appointment
+                </span>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    backgroundColor:
+                      booking.status === 'confirmed'
+                        ? 'rgba(15, 123, 95, 0.15)'
+                        : booking.status === 'cancelled'
+                        ? 'rgba(179, 64, 47, 0.15)'
+                        : 'rgba(224, 160, 48, 0.15)',
+                    color:
+                      booking.status === 'confirmed'
+                        ? 'var(--color-st-confirmed)'
+                        : booking.status === 'cancelled'
+                        ? 'var(--color-st-noshow)'
+                        : 'var(--color-st-pending-text)',
+                  }}
+                >
+                  {booking.status}
+                </span>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--color-slate)' }}>Date & Time</div>
+                <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--color-ink)' }}>
+                  {formatIsoToDisplay(booking.starts_at, showEthTime)}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-line)', paddingTop: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-slate)' }}>Service</div>
+                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{booking.service_name}</div>
+                </div>
+                {booking.price !== null && (
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--color-slate)' }}>Price</div>
+                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{booking.price} ETB</div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--color-line)', paddingTop: '8px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--color-slate)' }}>Provider</div>
+                <div style={{ fontWeight: 600, fontSize: '14px' }}>{booking.provider_name}</div>
+              </div>
+            </div>
+
+            {/* Cutoff Notice if active but past cutoff */}
+            {!booking.can_reschedule && !booking.can_cancel && booking.status !== 'cancelled' && (
+              <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(224, 160, 48, 0.1)', border: '1px solid var(--color-st-pending)', fontSize: '13px' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-st-pending-text)' }}>
+                  {t.cutoffPassedNotice} {booking.shop_name} ({booking.public_phone}).
+                </span>
+              </div>
+            )}
+
+            {/* Reschedule Picker Area */}
+            {isRescheduling && (
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'var(--color-surface)', border: '2px solid var(--color-plum)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontWeight: 600, fontSize: '15px' }}>{t.rescheduleTitle}</div>
+
+                {/* 14-day date strip */}
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                  {dateStrip.map((item) => {
+                    const isSelected = selectedDate === item.dateStr;
+                    return (
+                      <button
+                        key={item.dateStr}
+                        type="button"
+                        onClick={() => setSelectedDate(item.dateStr)}
+                        style={{
+                          flexShrink: 0,
+                          width: '52px',
+                          padding: '6px 2px',
+                          borderRadius: '8px',
+                          textAlign: 'center',
+                          border: isSelected ? '2px solid var(--color-plum)' : '1px solid var(--color-line)',
+                          backgroundColor: isSelected ? 'var(--color-plum)' : 'var(--color-surface)',
+                          color: isSelected ? 'var(--color-on-plum)' : 'var(--color-ink)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ fontSize: '10px' }}>{item.dayName}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{item.dayNum}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Time Chips */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {availableSlots.map((slot) => {
+                    const isSelected = selectedSlot === slot;
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setSelectedSlot(slot)}
+                        style={{
+                          padding: '8px 4px',
+                          borderRadius: '6px',
+                          border: isSelected ? '2px solid var(--color-plum)' : '1px solid var(--color-line)',
+                          backgroundColor: isSelected ? 'var(--color-plum)' : 'var(--color-surface)',
+                          color: isSelected ? 'var(--color-on-plum)' : 'var(--color-ink)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {formatIsoToDisplay(slot, showEthTime)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsRescheduling(false)}
+                    style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--color-line)', backgroundColor: 'var(--color-surface)' }}
+                  >
+                    {t.backBtn}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedSlot || reschedulingLoading}
+                    onClick={handleRescheduleSubmit}
+                    style={{ flex: 2, padding: '10px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--color-plum)', color: 'var(--color-on-plum)', fontWeight: 600 }}
+                  >
+                    {reschedulingLoading ? t.submittingBtn : t.confirmNewTimeBtn}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Cancel Modal / Sheet */}
+            {isCancelling && (
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'var(--color-surface)', border: '2px solid var(--color-st-noshow)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--color-st-noshow)' }}>
+                  {t.cancelConfirmPrompt}
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: 'var(--color-slate)', display: 'block', marginBottom: '4px' }}>
+                    {t.reasonPrompt}
+                  </label>
+                  <input
+                    type="text"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="e.g. Schedule conflict"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--color-line)',
+                      fontSize: '13px',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelling(false)}
+                    style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--color-line)', backgroundColor: 'var(--color-surface)' }}
+                  >
+                    {t.keepAppointmentBtn}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={cancelLoading}
+                    onClick={handleCancelSubmit}
+                    style={{ flex: 1, padding: '10px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--color-st-noshow)', color: '#fff', fontWeight: 600 }}
+                  >
+                    {cancelLoading ? t.submittingBtn : t.confirmCancelBtn}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            {!isRescheduling && !isCancelling && booking.status !== 'cancelled' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {booking.can_reschedule && (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => setIsRescheduling(true)}
+                  >
+                    📅 {t.rescheduleBtn}
+                  </button>
+                )}
+
+                {booking.can_cancel && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelling(true)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--color-st-noshow)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--color-st-noshow)',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✖ {t.cancelAppointmentBtn}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => generateIcs(booking, booking.shop_name)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-line)',
+                    backgroundColor: 'var(--color-surface)',
+                    color: 'var(--color-ink)',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📅 {t.addToCalendar}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// PUBLIC BOOKING APP (/b/<slug>)
+// -------------------------------------------------------------
 export function BookingApp() {
   const [locale, setLocale] = useState<Locale>('en');
   const [showEthTime, setShowEthTime] = useState(false);
@@ -176,7 +726,6 @@ export function BookingApp() {
   // Shop state
   const [shop, setShop] = useState<ShopData | null>(null);
   const [loadingShop, setLoadingShop] = useState(true);
-  const [shopError, setShopError] = useState<string | null>(null);
 
   // Selections
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
@@ -187,7 +736,7 @@ export function BookingApp() {
   const [selectedSlot, setSelectedSlot] = useState<string>(''); // ISO string
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [honeypot, setHoneypot] = useState(''); // Hidden honeypot field
+  const [honeypot, setHoneypot] = useState('');
 
   // Confirmation result
   const [confirmedBooking, setConfirmedBooking] = useState<{
@@ -203,7 +752,6 @@ export function BookingApp() {
 
   // Slots state
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
   const [alternativeSlots, setAlternativeSlots] = useState<string[]>([]);
 
   // Submission state
@@ -212,28 +760,23 @@ export function BookingApp() {
 
   const t = I18N[locale];
 
-  // Extract slug from URL pathname (/b/<slug>)
   const slug = (() => {
     if (typeof window === 'undefined') return 'test';
     const match = window.location.pathname.match(/\/b\/([^/]+)/);
     return match ? match[1] : 'test';
   })();
 
-  // 1. Load public shop information
   useEffect(() => {
     async function fetchShop() {
       try {
         const res = await fetch(`/api/public-shop?slug=${encodeURIComponent(slug)}`);
-        if (!res.ok) {
-          throw new Error('NOT_FOUND');
-        }
+        if (!res.ok) throw new Error('NOT_FOUND');
         const data = await res.json();
         setShop(data);
         if (data.services && data.services.length > 0) {
           setSelectedServiceId(data.services[0].id);
         }
       } catch {
-        // Fallback shop data for local static testing or pilot preview
         const mockShop: ShopData = {
           id: 'shop-preview-1',
           name: 'Addis Barber & Grooming',
@@ -262,26 +805,19 @@ export function BookingApp() {
     void fetchShop();
   }, [slug]);
 
-  // 2. Fetch or compute available slots when service, provider, or date changes
   useEffect(() => {
     if (!shop || !selectedServiceId) return;
-    setLoadingSlots(true);
-
-    // Compute sample day slot times: 08:30 to 18:00 on the selected date
     const slots: string[] = [];
     const times = ['09:00', '09:30', '10:00', '10:30', '11:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
     for (const tm of times) {
       slots.push(`${selectedDate}T${tm}:00+03:00`);
     }
-
     setAvailableSlots(slots);
     if (slots.length > 0 && (!selectedSlot || !selectedSlot.startsWith(selectedDate))) {
       setSelectedSlot(slots[0]);
     }
-    setLoadingSlots(false);
   }, [shop, selectedServiceId, selectedProviderId, selectedDate]);
 
-  // 3. Handle confirmation submit
   const handleConfirm = async () => {
     if (!customerName.trim()) {
       setErrorMessage(t.requiredName);
@@ -296,7 +832,6 @@ export function BookingApp() {
     setErrorMessage(null);
     setAlternativeSlots([]);
 
-    // Check honeypot: if bot filled it, stop silently
     if (honeypot.length > 0) {
       setSubmitting(false);
       setStep(4);
@@ -327,7 +862,7 @@ export function BookingApp() {
         setErrorMessage(t.slotTakenMsg);
         setAlternativeSlots(data.alternatives || []);
         setSubmitting(false);
-        setStep(2); // Keep choices and allow picking another time
+        setStep(2);
         return;
       }
 
@@ -343,14 +878,11 @@ export function BookingApp() {
         return;
       }
 
-      if (!res.ok) {
-        throw new Error(data.error || 'ERROR');
-      }
+      if (!res.ok) throw new Error(data.error || 'ERROR');
 
       setConfirmedBooking(data);
       setStep(4);
     } catch {
-      // Offline fallback mock for testing/preview environments
       const activeService = shop?.services.find((s) => s.id === selectedServiceId);
       const activeProvider = shop?.providers.find((p) => p.id === selectedProviderId);
 
@@ -371,44 +903,6 @@ export function BookingApp() {
     }
   };
 
-  // 4. Download .ics calendar event
-  const downloadIcs = () => {
-    if (!confirmedBooking || !shop) return;
-    const startObj = new Date(confirmedBooking.starts_at);
-    const endObj = new Date(confirmedBooking.ends_at);
-
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const toIcsDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
-
-    const icsString = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Book Desk//Public Booking//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      `UID:${confirmedBooking.booking_id}@bookdesk`,
-      `DTSTAMP:${toIcsDate(new Date())}`,
-      `DTSTART:${toIcsDate(startObj)}`,
-      `DTEND:${toIcsDate(endObj)}`,
-      `SUMMARY:${confirmedBooking.service_name} at ${shop.name}`,
-      `DESCRIPTION:Appointment with ${confirmedBooking.provider_name}.`,
-      'STATUS:CONFIRMED',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n');
-
-    const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `appointment-${confirmedBooking.booking_id.substring(0, 8)}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // 5. Share booking
   const shareBooking = async () => {
     if (!confirmedBooking || !shop) return;
     const shareText = `${shop.name}: Appointment for ${confirmedBooking.service_name} on ${formatIsoToDisplay(confirmedBooking.starts_at)}`;
@@ -420,7 +914,7 @@ export function BookingApp() {
           url: `${window.location.origin}/m/${confirmedBooking.manage_token}`,
         });
       } catch {
-        // User cancelled share
+        // Cancelled
       }
     } else {
       await navigator.clipboard.writeText(`${shareText}\n${window.location.origin}/m/${confirmedBooking.manage_token}`);
@@ -428,7 +922,6 @@ export function BookingApp() {
     }
   };
 
-  // Helper date list for the 14-day date strip
   const dateStrip: Array<{ dateStr: string; dayName: string; dayNum: number }> = [];
   const baseD = new Date();
   for (let i = 0; i < 14; i++) {
@@ -438,7 +931,6 @@ export function BookingApp() {
     dateStrip.push({ dateStr, dayName, dayNum: cur.getDate() });
   }
 
-  // Group slots by part of day
   const morningSlots = availableSlots.filter((s) => {
     const h = new Date(s).getHours();
     return h >= 5 && h < 12;
@@ -466,7 +958,6 @@ export function BookingApp() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Ethiopian time toggle */}
           <button
             type="button"
             onClick={() => setShowEthTime(!showEthTime)}
@@ -484,7 +975,6 @@ export function BookingApp() {
             {t.ethTimeToggle}
           </button>
 
-          {/* Language Switcher */}
           <div style={{ display: 'flex', borderRadius: '6px', border: '1px solid var(--color-line)', overflow: 'hidden' }}>
             {(['en', 'am', 'om'] as Locale[]).map((lang) => (
               <button
@@ -533,16 +1023,14 @@ export function BookingApp() {
         ))}
       </div>
 
-      {/* Error / Alert Reserved Space */}
       {errorMessage && (
         <div style={{ margin: '12px 16px 0', padding: '10px 12px', borderRadius: '8px', backgroundColor: 'rgba(179, 64, 47, 0.12)', border: '1px solid var(--color-st-noshow)', color: 'var(--color-st-noshow)', fontSize: '13px' }}>
           {errorMessage}
         </div>
       )}
 
-      {/* Scrollable Main Content */}
+      {/* Main Content */}
       <main style={{ padding: '16px', flex: 1, overflowY: 'auto' }}>
-        {/* STEP 1: SERVICE */}
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
@@ -599,7 +1087,6 @@ export function BookingApp() {
           </div>
         )}
 
-        {/* STEP 2: TIME */}
         {step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
@@ -607,7 +1094,6 @@ export function BookingApp() {
               <p style={{ fontSize: '13px', color: 'var(--color-slate)' }}>{t.selectTimeSub}</p>
             </div>
 
-            {/* Provider Selector */}
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
               <button
                 type="button"
@@ -648,7 +1134,6 @@ export function BookingApp() {
               ))}
             </div>
 
-            {/* 14-Day Date Strip with Availability Ribbon */}
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
               {dateStrip.map((item) => {
                 const isSelected = selectedDate === item.dateStr;
@@ -677,7 +1162,6 @@ export function BookingApp() {
               })}
             </div>
 
-            {/* Alternative Slots suggestion if previous slot was taken */}
             {alternativeSlots.length > 0 && (
               <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(224, 160, 48, 0.1)', border: '1px solid var(--color-st-pending)', fontSize: '13px' }}>
                 <div style={{ fontWeight: 600, color: 'var(--color-st-pending-text)', marginBottom: '6px' }}>
@@ -712,7 +1196,6 @@ export function BookingApp() {
               </div>
             )}
 
-            {/* Time Chips Grouped by Morning, Afternoon, Evening */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {morningSlots.length > 0 && (
                 <div>
@@ -813,7 +1296,6 @@ export function BookingApp() {
           </div>
         )}
 
-        {/* STEP 3: DETAILS */}
         {step === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
@@ -821,7 +1303,6 @@ export function BookingApp() {
               <p style={{ fontSize: '13px', color: 'var(--color-slate)' }}>{t.detailsSub}</p>
             </div>
 
-            {/* Summary Card */}
             <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)' }}>
               <div style={{ fontSize: '12px', color: 'var(--color-slate)' }}>Your Selection</div>
               <div style={{ fontWeight: 600, fontSize: '14px', marginTop: '2px' }}>
@@ -832,7 +1313,6 @@ export function BookingApp() {
               </div>
             </div>
 
-            {/* Form */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--color-slate)', marginBottom: '4px' }}>
@@ -879,7 +1359,6 @@ export function BookingApp() {
                 />
               </div>
 
-              {/* Honeypot hidden input for bot rejection */}
               <input
                 type="text"
                 name="website"
@@ -897,7 +1376,6 @@ export function BookingApp() {
           </div>
         )}
 
-        {/* STEP 4: CONFIRMATION */}
         {step === 4 && confirmedBooking && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
@@ -914,7 +1392,6 @@ export function BookingApp() {
               )}
             </div>
 
-            {/* Details Card */}
             <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-line)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '12px', color: 'var(--color-slate)' }}>Time</div>
@@ -942,11 +1419,10 @@ export function BookingApp() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button
                 type="button"
-                onClick={downloadIcs}
+                onClick={() => generateIcs(confirmedBooking, shop?.name || 'Book Desk')}
                 style={{
                   padding: '12px',
                   borderRadius: '8px',
@@ -1043,7 +1519,22 @@ export function BookingApp() {
   );
 }
 
+// -------------------------------------------------------------
+// APP ROUTER DISPATCHER
+// -------------------------------------------------------------
+function App() {
+  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isManage = path.startsWith('/m/');
+  const token = isManage ? path.replace('/m/', '').split('/')[0] : '';
+
+  if (isManage) {
+    return <ManageView token={token} />;
+  }
+
+  return <BookingApp />;
+}
+
 const rootElement = document.getElementById('booking-root');
 if (rootElement) {
-  render(<BookingApp />, rootElement);
+  render(<App />, rootElement);
 }

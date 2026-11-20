@@ -381,3 +381,281 @@ $$;
 
 revoke all on function public.public_create_booking(text, uuid, uuid, timestamptz, text, text, text, text) from anon, authenticated;
 grant execute on function public.public_create_booking(text, uuid, uuid, timestamptz, text, text, text, text) to service_role;
+
+
+-- 4. Helper function: public_get_booking
+create or replace function public.public_get_booking(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_contact record;
+  v_booking record;
+  v_shop record;
+  v_service record;
+  v_provider record;
+  v_cutoff_time timestamptz;
+  v_can_modify boolean := false;
+begin
+  select booking_id, shop_id, manage_token
+    into v_contact
+    from public.booking_contacts
+   where manage_token = p_token;
+
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  select * into v_booking
+    from public.bookings
+   where id = v_contact.booking_id;
+
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  -- Token expiry: 30 days after the appointment ends
+  if v_booking.ends_at < now() - interval '30 days' then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  select id, name, slug, timezone, cancel_cutoff_hours, public_phone
+    into v_shop
+    from public.shops
+   where id = v_booking.shop_id;
+
+  select id, name, duration_min, price
+    into v_service
+    from public.services
+   where id = v_booking.service_id;
+
+  select id, name
+    into v_provider
+    from public.providers
+   where id = v_booking.provider_id;
+
+  -- Cutoff calculation: b.starts_at - shop.cancel_cutoff_hours
+  v_cutoff_time := v_booking.starts_at - (coalesce(v_shop.cancel_cutoff_hours, 2) || ' hours')::interval;
+  v_can_modify := (v_booking.status in ('pending', 'confirmed')) and (now() < v_cutoff_time);
+
+  return jsonb_build_object(
+    'booking_id', v_booking.id,
+    'shop_name', v_shop.name,
+    'shop_slug', v_shop.slug,
+    'public_phone', v_shop.public_phone,
+    'service_id', v_service.id,
+    'service_name', v_service.name,
+    'service_duration_min', v_service.duration_min,
+    'provider_id', v_provider.id,
+    'provider_name', v_provider.name,
+    'starts_at', v_booking.starts_at,
+    'ends_at', v_booking.ends_at,
+    'status', v_booking.status,
+    'price', v_booking.price,
+    'can_reschedule', v_can_modify,
+    'can_cancel', v_can_modify,
+    'cutoff_hours', coalesce(v_shop.cancel_cutoff_hours, 2)
+  );
+end;
+$$;
+
+revoke all on function public.public_get_booking(text) from anon, authenticated;
+grant execute on function public.public_get_booking(text) to service_role;
+
+-- 5. Helper function: public_reschedule
+create or replace function public.public_reschedule(
+  p_token text,
+  p_new_start timestamptz
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_contact record;
+  v_b record;
+  v_shop record;
+  v_service record;
+  v_duration int;
+  v_buffer int;
+  v_new_end timestamptz;
+  v_new_blocked timestamptz;
+  v_cutoff_time timestamptz;
+  v_day_of_week int;
+  v_local_start time;
+  v_local_end time;
+  v_working_valid boolean := false;
+  v_updated public.bookings%rowtype;
+begin
+  select booking_id, shop_id into v_contact
+    from public.booking_contacts
+   where manage_token = p_token;
+
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  select * into v_b from public.bookings where id = v_contact.booking_id;
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  if v_b.ends_at < now() - interval '30 days' then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  select * into v_shop from public.shops where id = v_b.shop_id;
+
+  -- Cutoff check
+  v_cutoff_time := v_b.starts_at - (coalesce(v_shop.cancel_cutoff_hours, 2) || ' hours')::interval;
+  if now() >= v_cutoff_time then
+    raise exception 'CUTOFF_PASSED';
+  end if;
+
+  if v_b.status not in ('pending', 'confirmed') then
+    raise exception 'INVALID_TRANSITION';
+  end if;
+
+  -- Lead time and horizon checks
+  if p_new_start < now() + (coalesce(v_shop.lead_time_min, 60) || ' minutes')::interval then
+    raise exception 'TOO_SOON';
+  end if;
+
+  if p_new_start > now() + (coalesce(v_shop.horizon_days, 30) || ' days')::interval then
+    raise exception 'TOO_FAR';
+  end if;
+
+  select duration_min, buffer_min, price into v_service
+    from public.services where id = v_b.service_id;
+
+  v_duration := v_service.duration_min;
+  v_buffer := coalesce(v_service.buffer_min, 0);
+  v_new_end := p_new_start + (v_duration || ' minutes')::interval;
+  v_new_blocked := v_new_end + (v_buffer || ' minutes')::interval;
+
+  -- Working hours check
+  v_day_of_week := extract(isodow from p_new_start at time zone v_shop.timezone);
+  v_local_start := (p_new_start at time zone v_shop.timezone)::time;
+  v_local_end := (v_new_end at time zone v_shop.timezone)::time;
+
+  select true into v_working_valid
+    from public.working_hours wh
+   where wh.provider_id = v_b.provider_id
+     and wh.weekday = v_day_of_week
+     and wh.start_time <= v_local_start
+     and wh.end_time >= v_local_end;
+
+  if not coalesce(v_working_valid, false) then
+    raise exception 'OUTSIDE_HOURS';
+  end if;
+
+  -- Time off check
+  if exists (
+    select 1 from public.time_off toff
+     where (toff.provider_id = v_b.provider_id or toff.provider_id is null)
+       and toff.shop_id = v_shop.id
+       and tstzrange(p_new_start, v_new_blocked, '[)') && tstzrange(toff.starts_at, toff.ends_at, '[)')
+  ) then
+    raise exception 'OUTSIDE_HOURS';
+  end if;
+
+  -- Guarded update via exclusion constraint
+  begin
+    update public.bookings
+       set starts_at = p_new_start,
+           ends_at = v_new_end,
+           blocked_until = v_new_blocked,
+           version = version + 1,
+           updated_at = now()
+     where id = v_b.id
+     returning * into v_updated;
+  exception
+    when exclusion_violation then
+      raise exception 'SLOT_TAKEN';
+  end;
+
+  insert into public.booking_events (
+    booking_id, shop_id, type, actor_kind, meta
+  ) values (
+    v_b.id, v_shop.id, 'moved', 'customer',
+    jsonb_build_object('old_start', v_b.starts_at, 'new_start', p_new_start, 'source', 'manage')
+  );
+
+  return public.public_get_booking(p_token);
+end;
+$$;
+
+revoke all on function public.public_reschedule(text, timestamptz) from anon, authenticated;
+grant execute on function public.public_reschedule(text, timestamptz) to service_role;
+
+-- 6. Helper function: public_cancel
+create or replace function public.public_cancel(
+  p_token text,
+  p_reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_contact record;
+  v_b record;
+  v_shop record;
+  v_cutoff_time timestamptz;
+  v_updated public.bookings%rowtype;
+begin
+  select booking_id, shop_id into v_contact
+    from public.booking_contacts
+   where manage_token = p_token;
+
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  select * into v_b from public.bookings where id = v_contact.booking_id;
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  if v_b.ends_at < now() - interval '30 days' then
+    raise exception 'NOT_FOUND';
+  end if;
+
+  select * into v_shop from public.shops where id = v_b.shop_id;
+
+  v_cutoff_time := v_b.starts_at - (coalesce(v_shop.cancel_cutoff_hours, 2) || ' hours')::interval;
+  if now() >= v_cutoff_time then
+    raise exception 'CUTOFF_PASSED';
+  end if;
+
+  if v_b.status not in ('pending', 'confirmed') then
+    raise exception 'INVALID_TRANSITION';
+  end if;
+
+  update public.bookings
+     set status = 'cancelled',
+         cancelled_at = now(),
+         cancelled_by = 'customer',
+         cancel_reason = p_reason,
+         version = version + 1,
+         updated_at = now()
+   where id = v_b.id
+   returning * into v_updated;
+
+  insert into public.booking_events (
+    booking_id, shop_id, type, from_status, to_status, actor_kind, meta
+  ) values (
+    v_b.id, v_shop.id, 'cancelled', v_b.status, 'cancelled', 'customer',
+    jsonb_build_object('reason', p_reason, 'source', 'manage')
+  );
+
+  return public.public_get_booking(p_token);
+end;
+$$;
+
+revoke all on function public.public_cancel(text, text) from anon, authenticated;
+grant execute on function public.public_cancel(text, text) to service_role;

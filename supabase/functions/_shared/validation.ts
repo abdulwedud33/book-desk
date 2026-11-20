@@ -37,3 +37,30 @@ export const BookRequestSchema = z.object({
   // Honeypot field: must be empty. If filled by a bot, request is rejected.
   website: z.string().max(0, 'Bot detected').optional().default(''),
 });
+
+
+export const ManageTokenSchema = z.object({
+  token: z
+    .string()
+    .min(10)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/, 'Invalid manage token format'),
+});
+
+export const RescheduleRequestSchema = z.object({
+  token: z
+    .string()
+    .min(10)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/),
+  new_start: z.string().datetime(),
+});
+
+export const CancelRequestSchema = z.object({
+  token: z
+    .string()
+    .min(10)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/),
+  reason: z.string().trim().max(200).optional(),
+});
