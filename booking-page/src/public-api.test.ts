@@ -40,7 +40,7 @@ test('Security & Data Minimization: public responses contain zero personal or in
 test('Abuse controls: Honeypot detects and rejects bot submissions', () => {
   const legitInput = {
     slug: 'addis-barber',
-    service_id: '11111111-1111-1111-1111-111111111111',
+    service_id: '11111111-1111-4111-8111-111111111111',
     starts_at: '2026-11-25T09:00:00.000Z',
     name: 'Dawit Bekele',
     phone: '+251911223344',

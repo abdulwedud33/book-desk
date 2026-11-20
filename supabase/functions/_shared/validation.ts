@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const MAX_BODY_BYTES = 4096; // 4 KB request size cap per docs/security.md
 
 export const ShopQuerySchema = z.object({
@@ -16,8 +18,8 @@ export const SlotsQuerySchema = z.object({
     .min(3)
     .max(40)
     .regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/),
-  service_id: z.string().uuid(),
-  provider_id: z.string().uuid().nullable().optional(),
+  service_id: z.string().regex(uuidPattern, 'Invalid UUID'),
+  provider_id: z.string().regex(uuidPattern, 'Invalid UUID').nullable().optional(),
   from_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   to_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
@@ -28,8 +30,8 @@ export const BookRequestSchema = z.object({
     .min(3)
     .max(40)
     .regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/),
-  service_id: z.string().uuid(),
-  provider_id: z.string().uuid().nullable().optional(),
+  service_id: z.string().regex(uuidPattern, 'Invalid UUID'),
+  provider_id: z.string().regex(uuidPattern, 'Invalid UUID').nullable().optional(),
   starts_at: z.string().datetime(),
   name: z.string().trim().min(1).max(100),
   phone: z.string().trim().min(4).max(30),

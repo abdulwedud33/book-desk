@@ -12,7 +12,7 @@ import {
   buildTrustedContext,
   detectTimeAmbiguity,
   validateSlotGrounding,
-} from '../../src/domain/ai-guardrails.ts';
+} from '../_shared/guardrails.ts';
 import { BOOKING_ASSISTANT_PROMPT_TEMPLATE, BookingAssistantOutput } from '../_shared/prompts/booking-assistant.ts';
 
 const AI_MODEL_FAST = Deno.env.get('AI_MODEL_FAST') || 'gemini-1.5-flash';

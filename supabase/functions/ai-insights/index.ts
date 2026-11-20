@@ -5,7 +5,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { corsHeaders } from '../_shared/cors.ts';
-import { validateInsightsGrounding } from '../../src/domain/ai-guardrails.ts';
+import { validateInsightsGrounding } from '../_shared/guardrails.ts';
 import { InsightsOutput, InsightSuggestion } from '../_shared/prompts/insights-analyst.ts';
 
 const AI_MODEL_SMART = Deno.env.get('AI_MODEL_SMART') || 'gemini-1.5-pro';

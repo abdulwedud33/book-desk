@@ -8,7 +8,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import {
   validateMessageDraftSafety,
   getFallbackMessage,
-} from '../../src/domain/ai-guardrails.ts';
+} from '../_shared/guardrails.ts';
 import { MessageWriterOutput } from '../_shared/prompts/message-writer.ts';
 
 const AI_MODEL_FAST = Deno.env.get('AI_MODEL_FAST') || 'gemini-1.5-flash';
