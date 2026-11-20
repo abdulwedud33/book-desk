@@ -175,6 +175,35 @@ export async function queueCancelBooking(params: {
   void flushOutbox();
 }
 
+export async function queueCompleteReminder(params: {
+  shopId: string;
+  reminderId: string;
+}): Promise<void> {
+  const existing = await db.reminders.get(params.reminderId);
+  if (existing) {
+    await db.reminders.update(params.reminderId, {
+      state: 'done',
+      syncStatus: 'pending',
+    });
+  }
+
+  const action: OutboxAction = {
+    id: crypto.randomUUID(),
+    shopId: params.shopId,
+    type: 'complete_reminder',
+    payload: {
+      p_shop: params.shopId,
+      p_reminder: params.reminderId,
+    },
+    status: 'queued',
+    attempts: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  await db.outbox.put(action);
+  void flushOutbox();
+}
+
 export async function flushOutbox(): Promise<void> {
   if (isFlushing) return;
   isFlushing = true;

@@ -25,12 +25,29 @@ export interface LocalBooking {
 export interface OutboxAction {
   id: string; // client_id uuid
   shopId: string;
-  type: 'create_booking' | 'reschedule_booking' | 'cancel_booking' | 'set_booking_status';
+  type: 'create_booking' | 'reschedule_booking' | 'cancel_booking' | 'set_booking_status' | 'complete_reminder';
   payload: Record<string, unknown>;
   status: 'queued' | 'syncing' | 'failed' | 'conflict';
   errorMessage?: string;
   attempts: number;
   createdAt: string;
+}
+
+export interface LocalReminder {
+  id: string;
+  bookingId: string;
+  shopId: string;
+  kind: 'confirmation' | 'reminder_24h' | 'reminder_2h' | 'reschedule' | 'followup';
+  dueAt: string;
+  state: 'due' | 'done' | 'skipped';
+  doneBy?: string;
+  doneAt?: string;
+  customerName?: string;
+  customerPhone?: string;
+  serviceName?: string;
+  providerName?: string;
+  startsAt?: string;
+  syncStatus?: 'synced' | 'pending';
 }
 
 export interface LocalProvider {
@@ -56,6 +73,7 @@ export class BookDeskDatabase extends Dexie {
   outbox!: EntityTable<OutboxAction, 'id'>;
   providers!: EntityTable<LocalProvider, 'id'>;
   services!: EntityTable<LocalService, 'id'>;
+  reminders!: EntityTable<LocalReminder, 'id'>;
 
   constructor() {
     super('BookDeskDB');
@@ -64,6 +82,7 @@ export class BookDeskDatabase extends Dexie {
       outbox: 'id, shopId, status, createdAt',
       providers: 'id, shopId, sort',
       services: 'id, shopId',
+      reminders: 'id, bookingId, shopId, state, dueAt',
     });
   }
 }

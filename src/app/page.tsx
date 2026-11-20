@@ -19,6 +19,8 @@ export default function TodayPage() {
   const [role, setRole] = useState<MemberRole>('owner');
   const [loading, setLoading] = useState(true);
   const [todayBookings, setTodayBookings] = useState<LocalBooking[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [remindersBadge, setRemindersBadge] = useState(0);
   const { showToast } = useToast();
 
   const catalog = t().common;
@@ -29,6 +31,12 @@ export default function TodayPage() {
     async function loadData() {
       try {
         let all = await db.bookings.toArray();
+        const pending = all.filter((b) => b.status === 'pending');
+        setPendingCount(pending.length);
+
+        const rems = await db.reminders.where('state').equals('due').toArray();
+        setRemindersBadge(pending.length + rems.length);
+
         if (all.length === 0) {
           // Seed sample bookings for Today if empty
           const sample1: LocalBooking = {
@@ -141,6 +149,27 @@ export default function TodayPage() {
       </header>
 
       <main className="p-4 space-y-4 flex-1">
+        {/* Pending Requests Banner */}
+        {pendingCount > 0 && (
+          <div className="bg-amber-500/15 border border-amber-500/40 rounded-card p-3 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">🔔</span>
+              <div>
+                <p className="text-xs font-bold text-amber-950">
+                  {pendingCount} Pending Request{pendingCount !== 1 ? 's' : ''}
+                </p>
+                <p className="text-[11px] text-amber-900/80">Requires approval to confirm</p>
+              </div>
+            </div>
+            <Link
+              href="/reminders"
+              className="px-3 py-1 bg-amber-600 text-white font-semibold text-xs rounded-control hover:bg-amber-700 active:scale-95 transition-all"
+            >
+              Review →
+            </Link>
+          </div>
+        )}
+
         {/* Next Up card */}
         {loading ? (
           <CardSkeleton />
@@ -254,7 +283,7 @@ export default function TodayPage() {
         </section>
       </main>
 
-      <BottomNav role={role} />
+      <BottomNav role={role} todayBadge={pendingCount} remindersBadge={remindersBadge} />
     </div>
   );
 }

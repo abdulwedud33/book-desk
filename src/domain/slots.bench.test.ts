@@ -66,6 +66,9 @@ test('Availability engine benchmark: 7-day search for 5 providers under 400 ms',
     now,
   };
 
+  // Warmup run to compile and initialize Intl/V8
+  computeSlots(input);
+
   // Measure execution time
   const t0 = performance.now();
   const results = computeSlots(input);

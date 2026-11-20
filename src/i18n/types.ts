@@ -100,6 +100,26 @@ export interface Catalog {
     myDay: string;
     myCalendar: string;
   };
+  reminders: {
+    title: string;
+    subtitle: string;
+    empty: string;
+    pendingTitle: string;
+    pendingSubtitle: string;
+    pendingEmpty: string;
+    overdueBadge: string;
+    dueNow: string;
+    dueLater: string;
+    accept: string;
+    decline: string;
+    markDone: string;
+    filterAll: string;
+    filterConfirmation: string;
+    filter24h: string;
+    filter2h: string;
+    filterReschedule: string;
+    copiedToast: string;
+  };
   errors: {
     generic: string;
     slotTaken: string;

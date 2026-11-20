@@ -9,21 +9,23 @@ export type MemberRole = 'owner' | 'reception' | 'provider';
 interface BottomNavProps {
   currentPath?: string;
   role?: MemberRole;
+  remindersBadge?: number;
+  todayBadge?: number;
 }
 
-export function BottomNav({ currentPath = '/', role = 'owner' }: BottomNavProps) {
+export function BottomNav({ currentPath = '/', role = 'owner', remindersBadge = 0, todayBadge = 0 }: BottomNavProps) {
   const catalog = t().nav;
 
   const items = role === 'provider' ? [
-    { label: catalog.myDay, href: '/', icon: '🗓️' },
+    { label: catalog.myDay, href: '/', icon: '🗓️', badge: todayBadge },
     { label: catalog.myCalendar, href: '/calendar', icon: '📅' },
     { label: catalog.newBooking, href: '/new', isCenter: true, icon: '➕' },
     { label: catalog.more, href: '/more', icon: '⚙️' },
   ] : [
-    { label: catalog.today, href: '/', icon: '🗓️' },
+    { label: catalog.today, href: '/', icon: '🗓️', badge: todayBadge },
     { label: catalog.calendar, href: '/calendar', icon: '📅' },
     { label: catalog.newBooking, href: '/new', isCenter: true, icon: '➕' },
-    { label: catalog.reminders, href: '/reminders', icon: '🔔' },
+    { label: catalog.reminders, href: '/reminders', icon: '🔔', badge: remindersBadge },
     { label: catalog.more, href: '/more', icon: '⚙️' },
   ];
 
@@ -55,11 +57,18 @@ export function BottomNav({ currentPath = '/', role = 'owner' }: BottomNavProps)
             <a
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center w-14 py-1 transition-colors ${
+              className={`relative flex flex-col items-center justify-center w-14 py-1 transition-colors ${
                 isActive ? 'text-plum font-semibold' : 'text-slate hover:text-ink'
               }`}
             >
-              <span className="text-base" aria-hidden="true">{item.icon}</span>
+              <div className="relative">
+                <span className="text-base" aria-hidden="true">{item.icon}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-st-noshow text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center leading-none">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </div>
               <span className="text-[11px] mt-0.5">{item.label}</span>
             </a>
           );
