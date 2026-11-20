@@ -24,3 +24,8 @@ Format:
 - **Date**: 2026-11-20
 - **Decision**: Numbered the assistant, memory, and AI usage migration as `0010_assistant_and_ai.sql`.
 - **Context / Rationale**: Milestone M9 created `0009_reporting_and_analytics.sql`. To maintain strict sequential integrity in Supabase migrations, Milestone M10 uses prefix `0010`.
+
+### 2026-11-20: M11 Migration Numbering (0011)
+- **Date**: 2026-11-20
+- **Decision**: Numbered the realtime audit, final privilege lockdown, and nightly invariants migration as `0011_realtime_lockdown_invariants.sql`.
+- **Context / Rationale**: Follows sequential numbering after `0010_assistant_and_ai.sql`.
