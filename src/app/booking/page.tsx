@@ -12,6 +12,7 @@ import { queueStatusChange, queueRescheduleBooking, queueCancelBooking } from '.
 import { t } from '../../i18n/index.ts';
 import { formatTimeWithPartOfDay, toEthiopianHour } from '../../domain/time.ts';
 import { canRoleTransition, type BookingStatus } from '../../domain/status.ts';
+import { getFallbackMessage, validateMessageDraftSafety } from '../../domain/ai-guardrails.ts';
 
 function BookingDetailContent() {
   const router = useRouter();
@@ -32,8 +33,15 @@ function BookingDetailContent() {
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('10:00');
 
+  // Message Writer state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageTone, setMessageTone] = useState<'friendly' | 'neutral' | 'formal'>('friendly');
+  const [messageKind, setMessageKind] = useState<'confirmation' | 'reminder' | 'reschedule' | 'no_show'>('reminder');
+  const [draftedMessage, setDraftedMessage] = useState('');
+
   const catalog = t().booking;
   const common = t().common;
+  const assistantCatalog = t().assistant;
 
   useEffect(() => {
     async function loadData() {
@@ -145,6 +153,39 @@ function BookingDetailContent() {
     }
   };
 
+  const openMessageModal = (kind: 'confirmation' | 'reminder' | 'reschedule' | 'no_show' = 'reminder') => {
+    setMessageKind(kind);
+    const firstName = (booking?.customerName || 'Customer').split(' ')[0];
+    const draft = getFallbackMessage(
+      kind,
+      {
+        firstName,
+        businessName: 'Addis Barber Shop',
+        serviceName: service?.name || 'Haircut',
+        dateTimeWords: timeFormatted,
+      },
+      'en'
+    );
+    setDraftedMessage(draft);
+    setShowMessageModal(true);
+  };
+
+  const handleToneChange = (tone: 'friendly' | 'neutral' | 'formal') => {
+    setMessageTone(tone);
+    const firstName = (booking?.customerName || 'Customer').split(' ')[0];
+    const draft = getFallbackMessage(
+      messageKind,
+      {
+        firstName,
+        businessName: 'Addis Barber Shop',
+        serviceName: service?.name || 'Haircut',
+        dateTimeWords: timeFormatted,
+      },
+      'en'
+    );
+    setDraftedMessage(draft);
+  };
+
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col justify-between pb-20 bg-paper text-ink">
       <header className="p-4 border-b border-line bg-surface/90 sticky top-0 z-20 flex justify-between items-center">
@@ -247,6 +288,16 @@ function BookingDetailContent() {
               Note: {booking.note}
             </p>
           )}
+
+          <div className="pt-2 border-t border-line flex justify-end">
+            <button
+              type="button"
+              onClick={() => openMessageModal('reminder')}
+              className="px-3 py-1.5 bg-plum/10 text-plum border border-plum/20 hover:bg-plum/20 rounded-control text-xs font-semibold flex items-center gap-1.5 transition-all"
+            >
+              💬 {assistantCatalog.writeMessage}
+            </button>
+          </div>
         </section>
 
         {/* Status Actions */}
@@ -402,6 +453,121 @@ function BookingDetailContent() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Message Writer Modal */}
+        {showMessageModal && (
+          <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-surface border border-line rounded-card max-w-sm w-full p-4 space-y-3 shadow-xl">
+              <div className="border-b border-line pb-2 flex justify-between items-center">
+                <div>
+                  <h3 className="font-heading text-sm font-semibold text-ink">
+                    {assistantCatalog.writeMessage}
+                  </h3>
+                  <p className="text-[11px] text-slate">{assistantCatalog.writeMessageSubtitle}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMessageModal(false)}
+                  className="text-slate hover:text-ink text-sm p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Message Kind Selector */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate">
+                  {assistantCatalog.messageType}
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 text-xs">
+                  {[
+                    { id: 'reminder', label: 'Reminder' },
+                    { id: 'confirmation', label: 'Confirmation' },
+                    { id: 'reschedule', label: 'Reschedule' },
+                    { id: 'no_show', label: 'No-Show Follow-up' },
+                  ].map((k) => (
+                    <button
+                      type="button"
+                      key={k.id}
+                      onClick={() => openMessageModal(k.id as any)}
+                      className={`p-1.5 rounded-control border text-center font-medium transition-all ${
+                        messageKind === k.id
+                          ? 'border-plum bg-plum/10 text-plum font-semibold'
+                          : 'border-line bg-paper text-slate hover:text-ink'
+                      }`}
+                    >
+                      {k.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tone Selector */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate">Tone</label>
+                <div className="flex gap-1.5 text-xs">
+                  {[
+                    { id: 'friendly', label: assistantCatalog.toneFriendly },
+                    { id: 'neutral', label: assistantCatalog.toneNeutral },
+                    { id: 'formal', label: assistantCatalog.toneFormal },
+                  ].map((t) => (
+                    <button
+                      type="button"
+                      key={t.id}
+                      onClick={() => handleToneChange(t.id as any)}
+                      className={`flex-1 py-1 rounded-control border text-center transition-all ${
+                        messageTone === t.id
+                          ? 'border-ink bg-ink text-paper font-semibold'
+                          : 'border-line bg-paper text-slate'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Draft Area */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate">
+                  {assistantCatalog.draftPreview}
+                </label>
+                <textarea
+                  value={draftedMessage}
+                  onChange={(e) => setDraftedMessage(e.target.value)}
+                  rows={4}
+                  className="w-full p-2.5 text-xs bg-paper border border-line rounded-control focus:border-plum text-ink"
+                />
+                <span className="text-[10px] text-slate block text-right">
+                  {draftedMessage.trim().split(/\s+/).length} / 60 words
+                </span>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(draftedMessage);
+                    showToast({ message: 'Message copied to clipboard' });
+                  }}
+                  className="flex-1 py-2 bg-plum text-on-plum font-semibold text-xs rounded-control hover:opacity-95"
+                >
+                  {assistantCatalog.copyMessage}
+                </button>
+                {typeof navigator !== 'undefined' && 'share' in navigator && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.share({ text: draftedMessage }).catch(() => {});
+                    }}
+                    className="px-3 py-2 bg-surface border border-line text-slate hover:text-ink font-semibold text-xs rounded-control"
+                  >
+                    {assistantCatalog.shareMessage}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

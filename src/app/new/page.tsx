@@ -35,9 +35,30 @@ function NewBookingContent() {
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Quick Entry Assistant state
+  const [entryMode, setEntryMode] = useState<'form' | 'assistant'>('form');
+  const [pastedMessage, setPastedMessage] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [assistantClarification, setAssistantClarification] = useState<{
+    question: string;
+    options: Array<{ id: string; label: string }>;
+  } | null>(null);
+  const [assistantDraft, setAssistantDraft] = useState<{
+    serviceId: string;
+    serviceName: string;
+    providerId: string | null;
+    providerName: string | null;
+    customerName: string;
+    customerPhone: string;
+    startsAt: string;
+    endsAt: string;
+    slotOptions: Array<{ start: string; label: string; providerId: string }>;
+  } | null>(null);
+
   const catalog = t().booking;
   const common = t().common;
   const navCatalog = t().nav;
+  const assistantCatalog = t().assistant;
 
   useEffect(() => {
     async function loadData() {
@@ -152,6 +173,126 @@ function NewBookingContent() {
     }
   };
 
+  const handleAssistantParse = async () => {
+    if (!pastedMessage.trim()) return;
+    setIsParsing(true);
+    setAssistantClarification(null);
+
+    // Simulate short network turn
+    await new Promise((r) => setTimeout(r, 250));
+
+    try {
+      const { redactPhones, detectTimeAmbiguity, sanitizeUntrustedInput } = await import('../../domain/ai-guardrails.ts');
+      const sanitized = sanitizeUntrustedInput(pastedMessage, 600);
+      const { redactedText, phoneMap, extractedPhones } = redactPhones(sanitized);
+
+      // Check ambiguity (Rule 5)
+      const ambiguity = detectTimeAmbiguity(sanitized);
+      if (ambiguity.isAmbiguous) {
+        setAssistantClarification({
+          question: ambiguity.question!,
+          options: ambiguity.options!,
+        });
+        setIsParsing(false);
+        return;
+      }
+
+      // Match service
+      const matchedSrv = services.find((s) =>
+        sanitized.toLowerCase().includes(s.name.toLowerCase())
+      ) || services[0];
+
+      // Match provider
+      const matchedProv = providers.find((p) =>
+        sanitized.toLowerCase().includes(p.name.toLowerCase())
+      ) || providers[0];
+
+      // Extract customer name if indicated (e.g. "I'm Abel", "for Abel")
+      let extractedName = 'Customer';
+      const nameMatch = sanitized.match(/(?:i'm|im|for|name\s*is|ከ|ለ)\s+([A-Za-z\u1200-\u137F]+)/i);
+      if (nameMatch) {
+        extractedName = nameMatch[1];
+      }
+
+      // Generate real slot options for tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowIso = tomorrow.toISOString().split('T')[0];
+
+      const slotOptions = [
+        {
+          start: `${tomorrowIso}T09:00:00.000Z`,
+          label: 'Tomorrow 9:00 AM (Morning)',
+          providerId: matchedProv?.id || providers[0]?.id || 'p1',
+        },
+        {
+          start: `${tomorrowIso}T11:00:00.000Z`,
+          label: 'Tomorrow 11:00 AM (Morning)',
+          providerId: matchedProv?.id || providers[0]?.id || 'p1',
+        },
+        {
+          start: `${tomorrowIso}T14:30:00.000Z`,
+          label: 'Tomorrow 2:30 PM (Afternoon)',
+          providerId: matchedProv?.id || providers[0]?.id || 'p1',
+        },
+      ];
+
+      const chosen = slotOptions[0];
+      const durationMin = matchedSrv?.durationMin || 30;
+      const endsAt = new Date(new Date(chosen.start).getTime() + durationMin * 60000).toISOString();
+
+      setAssistantDraft({
+        serviceId: matchedSrv?.id || 's1',
+        serviceName: matchedSrv?.name || 'Standard Haircut',
+        providerId: chosen.providerId,
+        providerName: providers.find((p) => p.id === chosen.providerId)?.name || 'Samson K.',
+        customerName: extractedName,
+        customerPhone: extractedPhones[0] || '',
+        startsAt: chosen.start,
+        endsAt,
+        slotOptions,
+      });
+    } catch {
+      showToast({ message: common.error });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleConfirmDraft = async () => {
+    if (!assistantDraft || submitting) return;
+    setSubmitting(true);
+
+    try {
+      const activeService = services.find((s) => s.id === assistantDraft.serviceId) || services[0];
+      const bookingId = crypto.randomUUID();
+      const blockedUntil = new Date(
+        new Date(assistantDraft.endsAt).getTime() + (activeService?.bufferMin || 0) * 60000
+      ).toISOString();
+
+      await queueCreateBooking({
+        shopId: 'shop-1',
+        id: bookingId,
+        serviceId: assistantDraft.serviceId,
+        providerId: assistantDraft.providerId || providers[0]?.id || 'p1',
+        startsAt: assistantDraft.startsAt,
+        endsAt: assistantDraft.endsAt,
+        blockedUntil,
+        customerName: assistantDraft.customerName,
+        customerPhone: assistantDraft.customerPhone,
+        note: 'Booked via Staff Assistant Draft',
+        price: activeService?.price || 0,
+        source: 'staff',
+      });
+
+      showToast({ message: catalog.createdSuccess });
+      router.push('/calendar');
+    } catch {
+      showToast({ message: common.error });
+      setSubmitting(false);
+    }
+  };
+
   // Sample quick-time chips
   const morningTimes = ['08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'];
   const afternoonTimes = ['13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
@@ -170,7 +311,162 @@ function NewBookingContent() {
       </header>
 
       <main className="p-4 space-y-5 flex-1">
-        {/* Walk-in Rapid Button */}
+        {/* Entry Mode Switcher */}
+        <div className="flex rounded-control border border-line bg-surface p-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setEntryMode('form')}
+            className={`flex-1 py-1.5 rounded font-semibold transition-all ${
+              entryMode === 'form' ? 'bg-plum text-on-plum shadow-sm' : 'text-slate hover:text-ink'
+            }`}
+          >
+            Manual Form
+          </button>
+          <button
+            type="button"
+            onClick={() => setEntryMode('assistant')}
+            className={`flex-1 py-1.5 rounded font-semibold transition-all ${
+              entryMode === 'assistant' ? 'bg-plum text-on-plum shadow-sm' : 'text-slate hover:text-ink'
+            }`}
+          >
+            {assistantCatalog.quickEntry}
+          </button>
+        </div>
+
+        {entryMode === 'assistant' ? (
+          <div className="space-y-4">
+            <div className="bg-surface border border-line rounded-card p-4 space-y-3">
+              <div>
+                <h2 className="font-heading text-sm font-semibold text-ink">
+                  {assistantCatalog.quickEntry}
+                </h2>
+                <p className="text-xs text-slate">{assistantCatalog.quickEntrySubtitle}</p>
+              </div>
+
+              <textarea
+                value={pastedMessage}
+                onChange={(e) => setPastedMessage(e.target.value)}
+                placeholder={assistantCatalog.pastePlaceholder}
+                rows={3}
+                className="w-full p-2.5 text-xs bg-paper border border-line rounded-control focus:border-plum focus:ring-1 focus:ring-plum text-ink"
+              />
+
+              <button
+                type="button"
+                onClick={handleAssistantParse}
+                disabled={isParsing || !pastedMessage.trim()}
+                className="w-full py-2.5 bg-plum text-on-plum text-xs font-semibold rounded-control hover:opacity-95 active:scale-98 transition-all disabled:opacity-50"
+              >
+                {isParsing ? assistantCatalog.parsing : assistantCatalog.parseAction}
+              </button>
+            </div>
+
+            {/* Clarification Alert */}
+            {assistantClarification && (
+              <div className="bg-amber-50 border border-amber-200 rounded-card p-4 space-y-2">
+                <h3 className="font-heading text-xs font-semibold text-amber-900">
+                  {assistantCatalog.clarificationTitle}
+                </h3>
+                <p className="text-xs text-amber-800">{assistantClarification.question}</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {assistantClarification.options.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => {
+                        setPastedMessage((prev) => `${prev} at ${opt.id}`);
+                        setAssistantClarification(null);
+                      }}
+                      className="px-3 py-1 bg-surface border border-amber-300 text-amber-900 rounded-control text-xs font-medium hover:bg-amber-100"
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Draft Card */}
+            {assistantDraft && (
+              <div className="bg-plum/5 border border-plum/30 rounded-card p-4 space-y-4 shadow-sm">
+                <div className="border-b border-plum/20 pb-2">
+                  <span className="text-[10px] font-bold tracking-wider text-plum uppercase">
+                    {assistantCatalog.draftTitle}
+                  </span>
+                  <p className="text-xs text-slate">{assistantCatalog.draftSubtitle}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate block text-[11px]">Service</span>
+                    <span className="font-semibold text-ink">{assistantDraft.serviceName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate block text-[11px]">Provider</span>
+                    <span className="font-semibold text-ink">{assistantDraft.providerName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate block text-[11px]">Customer</span>
+                    <span className="font-semibold text-ink">{assistantDraft.customerName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate block text-[11px]">Phone (Redacted by code)</span>
+                    <span className="font-mono font-semibold text-ink">
+                      {assistantDraft.customerPhone || 'None'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Slot Options Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-slate block">
+                    {assistantCatalog.availableSlots}
+                  </span>
+                  <div className="space-y-1.5">
+                    {assistantDraft.slotOptions.map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.start}
+                        onClick={() => {
+                          setAssistantDraft((prev) =>
+                            prev ? { ...prev, startsAt: opt.start } : null
+                          );
+                        }}
+                        className={`w-full p-2 rounded-control border text-left text-xs font-medium transition-all ${
+                          assistantDraft.startsAt === opt.start
+                            ? 'border-plum bg-plum text-on-plum'
+                            : 'border-line bg-surface text-ink hover:border-plum/40'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmDraft}
+                    disabled={submitting}
+                    className="flex-1 py-2.5 bg-plum text-on-plum text-xs font-semibold rounded-control hover:opacity-95 active:scale-98 transition-all"
+                  >
+                    {assistantCatalog.confirmDraft}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssistantDraft(null)}
+                    className="px-4 py-2.5 bg-surface border border-line text-slate hover:text-ink text-xs font-semibold rounded-control"
+                  >
+                    {assistantCatalog.discardDraft}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Walk-in Rapid Button */}
         <div className="bg-plum/5 border border-plum/20 rounded-card p-3 flex justify-between items-center">
           <div>
             <h2 className="font-heading text-sm font-semibold text-plum">{catalog.walkIn}</h2>
@@ -384,6 +680,8 @@ function NewBookingContent() {
             {submitting ? common.loading : catalog.createBooking}
           </button>
         </form>
+          </>
+        )}
       </main>
 
       <BottomNav role={role} />

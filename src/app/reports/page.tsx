@@ -48,6 +48,8 @@ export default function ReportsPage() {
   const { showToast } = useToast();
   const catalog = t().reports;
   const common = t().common;
+  const assistantCatalog = t().assistant;
+  const [showAiInsights, setShowAiInsights] = useState(true);
 
   // Compute date boundaries based on selected period
   const getDateRange = (p: PeriodRange): { from: Date; to: Date } => {
@@ -261,6 +263,59 @@ export default function ReportsPage() {
             </div>
           )}
         </section>
+
+        {/* AI Executive Summary (Owner only) */}
+        {role === 'owner' && showAiInsights && !loading && (
+          <section className="bg-plum/5 border border-plum/25 rounded-card p-4 space-y-3">
+            <div className="flex justify-between items-center border-b border-plum/15 pb-2">
+              <div>
+                <h2 className="font-heading text-xs font-bold text-plum uppercase tracking-wider flex items-center gap-1.5">
+                  ✨ {assistantCatalog.insightsTitle}
+                </h2>
+                <p className="text-[11px] text-slate">{assistantCatalog.insightsSubtitle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  showToast({ message: 'Insights refreshed' });
+                }}
+                className="text-[11px] text-plum font-semibold hover:underline"
+              >
+                {assistantCatalog.refreshInsights}
+              </button>
+            </div>
+
+            <p className="text-xs text-ink leading-relaxed">
+              In this period, your business recorded {summary.totalBookings} total bookings with {summary.completedBookings} completed and {summary.noShowBookings} no-shows (no-show rate: {summary.noShowRate}%).
+            </p>
+
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-bold text-slate uppercase tracking-wider block">
+                Recommended Actions
+              </span>
+              <ul className="space-y-1 text-xs text-slate">
+                {summary.noShowRate > 10 && (
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-plum font-bold">•</span>
+                    <span>Send SMS or Telegram reminders earlier to reduce the {summary.noShowRate}% no-show rate.</span>
+                  </li>
+                )}
+                {popularServices.length > 0 && (
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-plum font-bold">•</span>
+                    <span>{popularServices[0].serviceName} is your highest volume service with {popularServices[0].bookingCount} appointments.</span>
+                  </li>
+                )}
+                {peakHours.length > 0 && (
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-plum font-bold">•</span>
+                    <span>Peak appointment demand occurs at {peakHours[0].hourOfDay}:00 with {peakHours[0].bookingCount} bookings.</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          </section>
+        )}
 
         {/* KPI Cards Grid */}
         {loading ? (
