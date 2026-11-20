@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BookRequestSchema, ShopQuerySchema, SlotsQuerySchema, MAX_BODY_BYTES } from '../../supabase/functions/_shared/validation.ts';
+import { BookRequestSchema, ShopQuerySchema, SlotsQuerySchema, MAX_BODY_BYTES } from '../../src/domain/validation.ts';
 import { translateError } from '../../src/domain/errors.ts';
 
 test('Security & Data Minimization: public responses contain zero personal or internal customer data', () => {

@@ -1,0 +1,67 @@
+import { z } from 'zod';
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const MAX_BODY_BYTES = 4096; // 4 KB request size cap per docs/security.md
+
+export const ShopQuerySchema = z.object({
+  slug: z
+    .string()
+    .min(3)
+    .max(40)
+    .regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/, 'Invalid slug format'),
+});
+
+export const SlotsQuerySchema = z.object({
+  slug: z
+    .string()
+    .min(3)
+    .max(40)
+    .regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/),
+  service_id: z.string().regex(uuidPattern, 'Invalid UUID'),
+  provider_id: z.string().regex(uuidPattern, 'Invalid UUID').nullable().optional(),
+  from_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const BookRequestSchema = z.object({
+  slug: z
+    .string()
+    .min(3)
+    .max(40)
+    .regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/),
+  service_id: z.string().regex(uuidPattern, 'Invalid UUID'),
+  provider_id: z.string().regex(uuidPattern, 'Invalid UUID').nullable().optional(),
+  starts_at: z.string().datetime(),
+  name: z.string().trim().min(1).max(100),
+  phone: z.string().trim().min(4).max(30),
+  language: z.enum(['en', 'am', 'om']).default('en'),
+  // Honeypot field: must be empty. If filled by a bot, request is rejected.
+  website: z.string().max(0, 'Bot detected').optional().default(''),
+});
+
+export const ManageTokenSchema = z.object({
+  token: z
+    .string()
+    .min(10)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/, 'Invalid manage token format'),
+});
+
+export const RescheduleRequestSchema = z.object({
+  token: z
+    .string()
+    .min(10)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/),
+  new_start: z.string().datetime(),
+});
+
+export const CancelRequestSchema = z.object({
+  token: z
+    .string()
+    .min(10)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/),
+  reason: z.string().trim().max(200).optional(),
+});

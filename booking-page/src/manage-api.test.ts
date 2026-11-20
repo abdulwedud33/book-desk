@@ -6,7 +6,7 @@ import {
   ManageTokenSchema,
   RescheduleRequestSchema,
   CancelRequestSchema,
-} from '../../supabase/functions/_shared/validation.ts';
+} from '../../src/domain/validation.ts';
 import { translateError } from '../../src/domain/errors.ts';
 
 test('Security & Headers: public/_headers enforces noindex and no-referrer on /m/* and /b/*', () => {

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'https://esm.sh/zod@4.6.7';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

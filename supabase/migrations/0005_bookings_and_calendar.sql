@@ -589,6 +589,8 @@ $$;
 grant execute on function public.set_booking_status to authenticated;
 
 -- 10. RPC: time_off_conflicts (Real implementation replacing 0003 stub)
+drop function if exists public.time_off_conflicts(uuid, uuid, timestamptz, timestamptz);
+
 create or replace function public.time_off_conflicts(
   p_shop uuid,
   p_provider uuid,
