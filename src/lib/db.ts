@@ -68,12 +68,27 @@ export interface LocalService {
   price: number | null;
 }
 
+export interface LocalCustomer {
+  id: string;
+  shopId: string;
+  name: string;
+  phoneE164: string;
+  language: 'en' | 'am' | 'om';
+  notes?: string | null;
+  noShowCount: number;
+  requireApproval: boolean;
+  blocked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class BookDeskDatabase extends Dexie {
   bookings!: EntityTable<LocalBooking, 'id'>;
   outbox!: EntityTable<OutboxAction, 'id'>;
   providers!: EntityTable<LocalProvider, 'id'>;
   services!: EntityTable<LocalService, 'id'>;
   reminders!: EntityTable<LocalReminder, 'id'>;
+  customers!: EntityTable<LocalCustomer, 'id'>;
 
   constructor() {
     super('BookDeskDB');
@@ -83,6 +98,7 @@ export class BookDeskDatabase extends Dexie {
       providers: 'id, shopId, sort',
       services: 'id, shopId',
       reminders: 'id, bookingId, shopId, state, dueAt',
+      customers: 'id, shopId, phoneE164, name, noShowCount, blocked',
     });
   }
 }

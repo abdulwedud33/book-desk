@@ -120,6 +120,30 @@ export interface Catalog {
     filterReschedule: string;
     copiedToast: string;
   };
+  customers: {
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    empty: string;
+    noShows: string;
+    repeatNoShowWarning: string;
+    requireApproval: string;
+    requireApprovalDesc: string;
+    blockPhone: string;
+    blockPhoneDesc: string;
+    notes: string;
+    notesPlaceholder: string;
+    saveNotes: string;
+    exportData: string;
+    deleteCustomer: string;
+    deleteConfirmTitle: string;
+    deleteConfirmDesc: string;
+    bookingHistory: string;
+    noBookings: string;
+    statusActive: string;
+    statusBlocked: string;
+    statusApproval: string;
+  };
   errors: {
     generic: string;
     slotTaken: string;
